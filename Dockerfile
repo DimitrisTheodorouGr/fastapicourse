@@ -1,14 +1,14 @@
-FROM python:3.11-slim
+FROM python:3.9
 
-WORKDIR /app
+WORKDIR /code
 
-# Copy the current directory contents into the container at /app
-COPY . /app
-# Install any needed packages specified in requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+COPY ./requirements.txt /code/requirements.txt
 
-# Make port 8000 available to the world outside this container
-EXPOSE 8000
+RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 
-# Run app.py when the container launches
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+COPY ./app /code/app
+
+#CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "80"]
+
+# If running behind a proxy like Nginx or Traefik add --proxy-headers
+ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "80", "--proxy-headers"]
