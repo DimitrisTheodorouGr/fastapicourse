@@ -2,6 +2,7 @@ version: '3.8'
 services:
   wellness-api:
     build: .
+    image: wellness-api
     ports:
       - "8000:80"
     networks:
