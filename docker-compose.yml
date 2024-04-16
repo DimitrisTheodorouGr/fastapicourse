@@ -4,3 +4,11 @@ services:
     build: .
     ports:
       - "8000:80"
+    networks:
+      - wellness-network
+
+networks:
+  wellness-network:
+    name: global-wellness-network
+    external: true
+
