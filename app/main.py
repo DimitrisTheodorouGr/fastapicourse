@@ -1,9 +1,17 @@
+import os
+
 from fastapi import FastAPI
 from typing import Union
 from sqlalchemy import create_engine, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
+load_dotenv()  # take environment variables from .env.
+
+# Determine the current running environment
+environment = os.getenv("ENVIRONMENT", "dev")
+
 
 # Define the list of origins allowed to make cross-origin requests
 origins = [
@@ -23,8 +31,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Database connection URL
-SQLALCHEMY_DATABASE_URL = "postgresql://timescaledb:z0Urp6nJpukzHLh@localhost:5432/timescaledb"
+# Choose the database URL based on the environment
+if environment.lower() == "prod":
+    SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL_PROD")
+else:
+    SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL_DEV")
 
 # Create the SQLAlchemy engine
 engine = create_engine(
