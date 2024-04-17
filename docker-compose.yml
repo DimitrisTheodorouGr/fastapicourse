@@ -1,6 +1,17 @@
 version: '3.8'
 services:
-  app:
+  wellness-api:
     build: .
+    image: wellness-api
     ports:
       - "8000:80"
+    env_file:
+      - .env
+    networks:
+      - wellness-network
+
+networks:
+  wellness-network:
+    name: global-wellness-network
+    external: true
+
