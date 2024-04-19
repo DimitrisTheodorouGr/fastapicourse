@@ -1,17 +1,9 @@
-import os
-
 from fastapi import FastAPI
 from typing import Union
-from sqlalchemy import create_engine, text
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
 from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
-load_dotenv()  # take environment variables from .env.
-
-# Determine the current running environment
-environment = os.getenv("ENVIRONMENT", "dev")
-
+from database import Base
+from database import engine
+from sqlalchemy import text
 
 # Define the list of origins allowed to make cross-origin requests
 origins = [
@@ -31,22 +23,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Choose the database URL based on the environment
-if environment.lower() == "prod":
-    SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL_PROD")
-else:
-    SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL_DEV")
-
-# Create the SQLAlchemy engine
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL
-)
-
-# Session factory bound to the engine
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-# Base class for declarative class definitions
-Base = declarative_base()
 
 # Test database connection
 def test_db_connection():
