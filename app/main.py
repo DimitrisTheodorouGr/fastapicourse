@@ -1,9 +1,12 @@
-from fastapi import FastAPI
-from typing import Union
+from .database import SessionLocal, engine
+from .models import Ranches
+from fastapi import FastAPI, Depends
+from typing import Union, Annotated
 from fastapi.middleware.cors import CORSMiddleware
-from database import Base
-from database import engine
 from sqlalchemy import text
+from sqlalchemy.orm import Session
+
+
 
 # Define the list of origins allowed to make cross-origin requests
 origins = [
@@ -13,6 +16,7 @@ origins = [
 ]
 
 app = FastAPI(root_path="/wellness-api")
+
 
 # Set up CORS middleware
 app.add_middleware(
@@ -41,7 +45,14 @@ def test_db_connection():
 def test_database():
     return test_db_connection()
 
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
 # Example API endpoint
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: Union[str, None] = None):
-    return {"item_id": item_id, "q": q}
+@app.get("/read-all-ranches")
+def read_all_ranches(db: Annotated[Session, Depends(get_db)]):
+    return db.query(Ranches).all()
