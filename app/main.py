@@ -1,6 +1,7 @@
 from .database import SessionLocal, engine
 from .models import Ranches
-from fastapi import FastAPI, Depends
+from .routers import auth
+from fastapi import FastAPI, Depends,APIRouter
 from typing import Union, Annotated
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
@@ -17,6 +18,7 @@ origins = [
 
 app = FastAPI(root_path="/wellness-api")
 
+app.include_router(auth.router)
 
 # Set up CORS middleware
 app.add_middleware(
@@ -45,6 +47,7 @@ def test_db_connection():
 def test_database():
     return test_db_connection()
 
+#Function for opening and closing connection with the database after each query.
 def get_db():
     db = SessionLocal()
     try:
@@ -52,7 +55,11 @@ def get_db():
     finally:
         db.close()
 
+#Dependancy connection
+db_dependancy = Annotated[Session, Depends(get_db)]
+
+
 # Example API endpoint
 @app.get("/read-all-ranches")
-def read_all_ranches(db: Annotated[Session, Depends(get_db)]):
+def read_all_ranches(db: db_dependancy):
     return db.query(Ranches).all()
