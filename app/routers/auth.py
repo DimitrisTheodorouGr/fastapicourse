@@ -31,7 +31,7 @@ class CreateUserRequest(BaseModel):
     username: str
     email: str
     password: str = Field(min_length=6)
-    role: str
+    
 
 class Token(BaseModel):
     access_token: str
@@ -82,7 +82,7 @@ async def create_user(db: db_dependency,create_user_request: CreateUserRequest):
     create_user_model = Users(
         username=create_user_request.username,
         email=create_user_request.email,
-        role=create_user_request.role,
+        role='user',
         created_at= datetime.now(),
         updated_at= datetime.now(),
         password= bcrypt_context.hash(create_user_request.password)
