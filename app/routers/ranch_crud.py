@@ -14,8 +14,10 @@ from jose import jwt, JWTError
 import os
 
 
-router = APIRouter()
-
+router = APIRouter(
+    prefix='/ranch',
+    tags=['ranch']
+)
 
 class CreateRanchRequest(BaseModel):
     name: str
@@ -35,18 +37,18 @@ user_dependency = Annotated[dict, Depends(get_current_user)]
 
 
 # Example API endpoint
-@router.get("/read-all-ranches")
-def read_all_ranches_based_on_role(user:user_dependency, db: db_dependency):
+@router.get("/")
+async def read_all_ranches_based_on_role(user:user_dependency, db: db_dependency):
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
     elif user.get('user_role') == 'rancher':
         return db.query(Ranches).join(UserRanches, UserRanches.ranch_id == Ranches.id).filter(UserRanches.user_id == user.get('user_id')).first()
-    elif user.get('user_role') == 'Admin':
+    elif user.get('user_role') == 'admin':
         return db.query(Ranches).all()
 
 
-@router.post('/create-ranch')
-def create_ranch(user: user_dependency, db: db_dependency, create_ranch_request: CreateRanchRequest):
+@router.post('/')
+async def create_ranch(user: user_dependency, db: db_dependency, create_ranch_request: CreateRanchRequest):
 
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
@@ -57,5 +59,18 @@ def create_ranch(user: user_dependency, db: db_dependency, create_ranch_request:
     )
     db.add(create_ranch_model)
     db.commit()
+@router.put("/{ranch_id}")
+async def update_ranch(user: user_dependency,db: db_dependency):
+    if user is None:
+        raise HTTPException(status_code=401, detail='Authentication Failed')
 
+@router.delete("/{ranch_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_ranch(user:user_dependency,db: db_dependency, ranch_id: int):
+    if user is None:
+        raise HTTPException(status_code=401, detail='Authentication Failed')
+    ranch_model = db.query(Ranches).filter(Ranches.id == ranch_id).first()
+    if ranch_model is None:
+        raise HTTPException(status_code=404, detail='User not found.')
 
+    db.query(Ranches).filter(Ranches.id == ranch_id).delete()
+    db.commit()

@@ -3,8 +3,8 @@ from starlette import status
 from app.database import SessionLocal
 from app.models import Users
 from typing import Annotated
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, Path
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from passlib.context import CryptContext
@@ -26,17 +26,19 @@ ALGORITHM = 'HS256'
 
 
 bcrypt_context=CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_bearer = OAuth2PasswordBearer(tokenUrl='auth/token')
+oauth2_bearer = OAuth2PasswordBearer(tokenUrl='auth/login')
 class CreateUserRequest(BaseModel):
     username: str
     email: str
-    password: str
+    password: str = Field(min_length=6)
     role: str
 
 class Token(BaseModel):
     access_token: str
     token_type: str
-
+class UserVerification(BaseModel):
+    password: str
+    new_password: str = Field(min_length=6)
 #Function for opening and closing connection with the database after each query.
 def get_db():
     db = SessionLocal()
@@ -45,8 +47,7 @@ def get_db():
     finally:
         db.close()
 
-#Dependancy connection
-db_dependency = Annotated[Session, Depends(get_db)]
+
 def authenticate_user(username: str, password: str, db):
     user = db.query(Users).filter(Users.username== username).first()
     if not user:
@@ -72,7 +73,9 @@ async def  get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
         return {'username': username, 'user_id': user_id, 'user_role': user_role}
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate user")
-
+#Dependancy connection
+db_dependency = Annotated[Session, Depends(get_db)]
+user_dependency = Annotated[dict, Depends(get_current_user)]
 @router.post("/register",status_code=status.HTTP_201_CREATED)
 async def create_user(db: db_dependency,create_user_request: CreateUserRequest):
 
@@ -83,11 +86,23 @@ async def create_user(db: db_dependency,create_user_request: CreateUserRequest):
         created_at= datetime.now(),
         updated_at= datetime.now(),
         password= bcrypt_context.hash(create_user_request.password)
-    )
+        )
     db.add(create_user_model)
     db.commit()
 
-@router.post("/token",response_model=Token)
+@router.put("/change-password", status_code=status.HTTP_204_NO_CONTENT)
+async def change_password(user: user_dependency, db: db_dependency,
+                          user_verification: UserVerification):
+    if user is None:
+        raise HTTPException(status_code=401, detail='Authentication Failed')
+    user_model = db.query(Users).filter(Users.id == user.get('id')).first()
+
+    if not bcrypt_context.verify(user_verification.password, user_model.hashed_password):
+        raise HTTPException(status_code=401, detail='Error on password change')
+    user_model.hashed_password = bcrypt_context.hash(user_verification.new_password)
+    db.add(user_model)
+    db.commit()
+@router.post("/login",response_model=Token)
 async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: db_dependency):
 
     user = authenticate_user(form_data.username,form_data.password,db)
@@ -95,3 +110,4 @@ async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm,
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate user")
     token = create_access_token(user.username, user.id, user.role, timedelta(minutes=30))
     return {'access_token': token, 'token_type': 'bearer'}
+
