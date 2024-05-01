@@ -16,7 +16,7 @@ import os
 
 router = APIRouter(
     prefix='/ranch',
-    tags=['ranch']
+    tags=['Ranch']
 )
 
 class CreateRanchRequest(BaseModel):

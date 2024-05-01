@@ -10,7 +10,7 @@ from datetime import datetime
 
 router = APIRouter(
     prefix="/admin",
-    tags=['admin']
+    tags=['Admin']
 )
 #Function for opening and closing connection with the database after each query.
 def get_db():
