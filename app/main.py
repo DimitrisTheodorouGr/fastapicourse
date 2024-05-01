@@ -1,6 +1,6 @@
 from .database import SessionLocal, engine
 from .models import Ranches
-from .routers import auth, crud
+from .routers import auth, ranch_crud,admins
 from fastapi import FastAPI, Depends
 from typing import Union, Annotated
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,7 +19,8 @@ origins = [
 app = FastAPI(root_path="/wellness-api")
 
 app.include_router(auth.router)
-app.include_router(crud.router)
+app.include_router(ranch_crud.router)
+app.include_router(admins.router)
 
 # Set up CORS middleware
 app.add_middleware(
