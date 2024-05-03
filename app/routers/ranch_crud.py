@@ -46,7 +46,12 @@ async def read_all_ranches_based_on_role(user:user_dependency, db: db_dependency
     elif user.get('user_role') == 'admin':
         return db.query(Ranches).all()
 
+@router.get('/{ranch_id}')
+async def read_ranch_by_id(user:user_dependency, db: db_dependency, ranch_id: int = Path(gt=0)):
+    if user is None:
+        raise HTTPException(status_code=401, detail='Authentication Failed')
 
+    return db.query(Ranches).filter(Ranches.id == ranch_id).first()
 @router.post('/')
 async def create_ranch(user: user_dependency, db: db_dependency, create_ranch_request: RanchRequest):
 
