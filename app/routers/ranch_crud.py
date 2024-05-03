@@ -53,7 +53,7 @@ async def read_ranch_by_id(user:user_dependency, db: db_dependency, ranch_id: in
         raise HTTPException(status_code=401, detail='Authentication Failed')
 
     return db.query(Ranches).filter(Ranches.id == ranch_id).first()
-@router.post('/')
+@router.post('/', status_code=status.HTTP_201_CREATED)
 async def create_ranch(user: user_dependency, db: db_dependency, create_ranch_request: RanchRequest):
 
     if user is None:
