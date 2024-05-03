@@ -1,6 +1,5 @@
 from .database import SessionLocal, engine
-from .models import Ranches
-from .routers import auth, ranch_crud,admins
+from .routers import auth, ranch_crud, admins
 from fastapi import FastAPI, Depends
 from typing import Union, Annotated
 from fastapi.middleware.cors import CORSMiddleware
