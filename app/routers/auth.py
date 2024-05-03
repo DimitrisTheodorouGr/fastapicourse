@@ -31,7 +31,7 @@ class CreateUserRequest(BaseModel):
     username: str
     email: str
     password: str = Field(min_length=6)
-    
+
 
 class Token(BaseModel):
     access_token: str
