@@ -22,7 +22,8 @@ class RanchRequest(BaseModel):
     milked_animals: int
     milk_yield_per_year: float
 
-
+class UserRanchRequest(BaseModel):
+    ranch_id :int
 #Function for opening and closing connection with the database after each query.
 def get_db():
     db = SessionLocal()
@@ -42,7 +43,7 @@ async def read_all_ranches_based_on_role(user:user_dependency, db: db_dependency
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
     elif user.get('user_role') == 'rancher':
-        return db.query(Ranches).join(UserRanches, UserRanches.ranch_id == Ranches.id).filter(UserRanches.user_id == user.get('user_id')).first()
+        return db.query(Ranches).join(UserRanches, UserRanches.ranch_id == Ranches.id).filter(UserRanches.user_id == user.get('user_id')).all()
     elif user.get('user_role') == 'admin':
         return db.query(Ranches).all()
 
@@ -95,4 +96,27 @@ async def delete_ranch(user:user_dependency,db: db_dependency, ranch_id: int):
         raise HTTPException(status_code=404, detail='User not found.')
 
     db.query(Ranches).filter(Ranches.id == ranch_id).delete()
+    db.commit()
+@router.post('/associate/{ranch_id}', status_code=status.HTTP_201_CREATED)
+async def associate_ranch(user:user_dependency,db: db_dependency, create_user_ranch_request: UserRanchRequest):
+    if user is None:
+        raise HTTPException(status_code=401, detail='Authentication Failed')
+    ranch_model = db.query(UserRanches).filter(UserRanches.ranch_id == create_user_ranch_request.ranch_id).first()
+    if ranch_model is not None:
+        return {'message': 'Ranch already associated with an other user'}
+    create_user_ranch_model = UserRanches(
+        user_id=user.get('user_id'),
+        ranch_id=create_user_ranch_request.ranch_id
+        )
+    db.add(create_user_ranch_model)
+    db.commit()
+@router.delete("/associate/{ranch_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def disassociate_ranch_from_user(user:user_dependency, db: db_dependency, ranch_id: int):
+    if user is None:
+        raise HTTPException(status_code=401, detail='Authentication Failed')
+    ranch_model = db.query(UserRanches).filter(UserRanches.ranch_id == ranch_id).filter(UserRanches.user_id==user.get('user_id')).first()
+    if ranch_model is None:
+        raise HTTPException(status_code=404, detail='Association not found.')
+
+    db.query(UserRanches).filter(UserRanches.ranch_id == ranch_id).filter(UserRanches.user_id==user.get('user_id')).delete()
     db.commit()
