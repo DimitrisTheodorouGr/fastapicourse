@@ -1,17 +1,13 @@
 from app.database import SessionLocal
-from app.models import Users, Ranches , UserRanches
+from app.models import Users, Ranches, UserRanches
 from .auth import get_current_user
-from fastapi import FastAPI, Depends, APIRouter,HTTPException
+from fastapi import Depends, APIRouter, HTTPException
 from typing import Union, Annotated
 from sqlalchemy import text
 from starlette import status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from datetime import datetime, timedelta
-from passlib.context import CryptContext
-from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
-from jose import jwt, JWTError
-import os
+from datetime import datetime
 
 
 router = APIRouter(
