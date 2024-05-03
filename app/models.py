@@ -9,6 +9,10 @@ class Ranches(Base):
     name = Column(String)
     created_at = Column(DateTime)
     updated_at = Column(DateTime)
+    farm_id = Column(String)
+    main_animal_species = Column(String)
+    milked_animals = Column(Integer)
+    milk_yield_per_year = Column(Float)
     # Define a relationship to UserRanches
     users = relationship('UserRanches', back_populates='ranch')
     stations = relationship('StationRanches', back_populates='ranch2')
@@ -46,6 +50,8 @@ class Animals(Base):
     tag = Column(String)
     created_at = Column(DateTime)
     updated_at = Column(DateTime)
+    age = Column(Integer)
+    status = Column(Boolean) # 0 = Dead, 1 = Alive
 
 class HealthRec(Base):
     __tablename__ = 'health_record'
