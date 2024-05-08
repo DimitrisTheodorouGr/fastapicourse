@@ -69,7 +69,7 @@ async def create_ranch(user: user_dependency, db: db_dependency, create_ranch_re
     )
     db.add(create_ranch_model)
     db.commit()
-@router.put("/{ranch_id}")
+@router.put("/{ranch_id}",status_code=status.HTTP_204_NO_CONTENT)
 async def update_ranch(user: user_dependency,db: db_dependency, update_ranch_request: RanchRequest, ranch_id: int = Path(gt=0)):
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
