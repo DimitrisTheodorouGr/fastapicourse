@@ -79,12 +79,7 @@ async def  get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
 #Dependancy connection
 db_dependency = Annotated[Session, Depends(get_db)]
 user_dependency = Annotated[dict, Depends(get_current_user)]
-@router.get("/user-info")
-async def user_info(user: user_dependency, db: db_dependency):
-    if user is None:
-        raise HTTPException(status_code=401, detail='Authentication Failed')
 
-    return db.query(Users).filter(Users.id == user.get('user_id')).first()
 @router.put("/update-info", status_code=status.HTTP_204_NO_CONTENT)
 async def update_user_info(user: user_dependency, db: db_dependency, update_user_request: UpdateUserRequest):
     if user is None:
