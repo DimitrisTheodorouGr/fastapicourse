@@ -23,6 +23,18 @@ def get_db():
 #Dependancy connection
 db_dependency = Annotated[Session, Depends(get_db)]
 user_dependency = Annotated[dict, Depends(get_current_user)]
+@router.put('/change-user-role')
+async def change_user_role(user: user_dependency, db: db_dependency,user_role:str,username:str):
+    if user is None:
+        raise HTTPException(status_code=401, detail='Authentication Failed')
+    if user.get('user_role') == 'admin':
+        user_model = db.query(Users).filter(Users.username == username).first()
+        if user_model is None:
+            return HTTPException(status_code=404, detail='No User found')
+        user_model.role = user_role
+        user_model.updated_at = datetime.now()
+        db.add(user_model)
+        db.commit()
 
 @router.get('/ranch_associations')
 async def get_user_ranch_associations(user: user_dependency, db: db_dependency):
