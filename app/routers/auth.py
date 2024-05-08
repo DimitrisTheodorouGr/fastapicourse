@@ -27,12 +27,15 @@ ALGORITHM = 'HS256'
 
 bcrypt_context=CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_bearer = OAuth2PasswordBearer(tokenUrl='auth/login')
+
 class CreateUserRequest(BaseModel):
     username: str
     email: str
     password: str = Field(min_length=6)
 
-
+class UpdateUserRequest(BaseModel):
+    username: str
+    email: str
 class Token(BaseModel):
     access_token: str
     token_type: str
@@ -76,6 +79,26 @@ async def  get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
 #Dependancy connection
 db_dependency = Annotated[Session, Depends(get_db)]
 user_dependency = Annotated[dict, Depends(get_current_user)]
+@router.get("/user-info")
+async def user_info(user: user_dependency, db: db_dependency):
+    if user is None:
+        raise HTTPException(status_code=401, detail='Authentication Failed')
+
+    return db.query(Users).filter(Users.id == user.get('user_id')).first()
+@router.put("/update-info", status_code=status.HTTP_204_NO_CONTENT)
+async def update_user_info(user: user_dependency, db: db_dependency, update_user_request: UpdateUserRequest):
+    if user is None:
+        raise HTTPException(status_code=401, detail='Authentication Failed')
+    user_model2 = db.query(Users).filter(Users.id == user.get('user_id')).first()
+    if user_model2 is None:
+        raise HTTPException(status_code=404, detail='User not found.')
+
+    user_model2.username = update_user_request.username
+    user_model2.email = update_user_request.email
+    user_model2.updated_at = datetime.now()
+
+    db.add(user_model2)
+    db.commit()
 @router.post("/register",status_code=status.HTTP_201_CREATED)
 async def create_user(db: db_dependency,create_user_request: CreateUserRequest):
 
@@ -95,11 +118,12 @@ async def change_password(user: user_dependency, db: db_dependency,
                           user_verification: UserVerification):
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
-    user_model = db.query(Users).filter(Users.id == user.get('id')).first()
+    user_model = db.query(Users).filter(Users.id == user.get('user_id')).first()
 
-    if not bcrypt_context.verify(user_verification.password, user_model.hashed_password):
+    if not bcrypt_context.verify(user_verification.password, user_model.password):
         raise HTTPException(status_code=401, detail='Error on password change')
-    user_model.hashed_password = bcrypt_context.hash(user_verification.new_password)
+    user_model.password = bcrypt_context.hash(user_verification.new_password)
+    user_model.updated_at = datetime.now()
     db.add(user_model)
     db.commit()
 @router.post("/login",response_model=Token)
