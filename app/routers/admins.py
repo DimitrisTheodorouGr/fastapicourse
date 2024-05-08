@@ -1,8 +1,8 @@
 from starlette import status
 from .auth import get_current_user
 from app.database import SessionLocal
-from app.models import Users, UserRanches, Ranches,Station
-from typing import Annotated
+from app.models import Users, UserRanches, Ranches,Station,StationRanches
+from typing import Annotated, List
 from fastapi import APIRouter, Depends, HTTPException, Path ,Query
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
@@ -12,6 +12,15 @@ router = APIRouter(
     prefix="/admin",
     tags=['Admin']
 )
+
+class StationInfoResponse(BaseModel):
+    ranch_id: int
+    ranch_name: str
+    station_id: int
+    station_name: str
+class StationRanchRequest(BaseModel):
+    ranch_id: int
+    station_id: int
 #Function for opening and closing connection with the database after each query.
 def get_db():
     db = SessionLocal()
@@ -82,16 +91,46 @@ async def delete_user(user: user_dependency, db: db_dependency, user_id: int = P
     else:
      return {'message': 'Only admins can delete'}
 
-    @router.delete("/station/{station_id}", status_code=status.HTTP_204_NO_CONTENT)
-    async def delete_user(user: user_dependency, db: db_dependency, station_id: int = Path(gt=0)):
-        if user is None:
-            raise HTTPException(status_code=401, detail='Authentication Failed')
-        if user.get('user_role') == 'admin':
-            station_model = db.query(station_id).filter(Station.id == station_id).first()
-            if station_model is None:
+@router.delete("/station/{station_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_station(user: user_dependency, db: db_dependency, station_id: int = Path(gt=0)):
+    if user is None:
+        raise HTTPException(status_code=401, detail='Authentication Failed')
+    if user.get('user_role') == 'admin':
+        station_model = db.query(station_id).filter(Station.id == station_id).first()
+        if station_model is None:
                 raise HTTPException(status_code=404, detail='Station not found.')
 
-            db.query(Station).filter(Station.id == station_id).delete()
-            db.commit()
-        else:
-            return {'message': 'Only admins can delete'}
+        db.query(Station).filter(Station.id == station_id).delete()
+        db.commit()
+    else:
+        return {'message': 'Only admins can delete'}
+@router.get("/stations-associations/", response_model= List[StationInfoResponse])
+def read_stations_ranches_associations(db: db_dependency, user: user_dependency):
+    if user is None:
+        raise HTTPException(status_code=401, detail='Authentication Failed')
+    if user.get('user_role') == 'admin':
+        results = db.query(Ranches.id.label('ranch_id'), Ranches.name.label('ranch_name'),
+                               Station.id.label('station_id'), Station.station_name).\
+                        join(StationRanches, Ranches.id == StationRanches.ranch_id).\
+                        join(Station, Station.id == StationRanches.station_id).all()
+        return results
+@router.post("/stations-associations/", status_code=status.HTTP_201_CREATED)
+def create_stations_ranches_associations(db: db_dependency,user: user_dependency, station_ranch_request:StationRanchRequest):
+    if user is None:
+        raise HTTPException(status_code=401, detail='Authentication Failed')
+    if user.get('user_role') == 'admin':
+        station_ranch_model = StationRanches(**station_ranch_request.dict())
+        db.add(station_ranch_model)
+        db.commit()
+@router.delete("/stations-associations/", status_code=status.HTTP_204_NO_CONTENT)
+def create_stations_ranches_associations(db: db_dependency,user: user_dependency, station_id: int, ranch_id: int):
+    if user is None:
+        raise HTTPException(status_code=401, detail='Authentication Failed')
+    if user.get('user_role') == 'admin':
+        station_ranch_model = db.query(StationRanches).filter(StationRanches.station_id == station_id,
+                                                  StationRanches.ranch_id == ranch_id).first()
+        if not station_ranch_model:
+            raise HTTPException(status_code=404, detail="Station Ranch Association not found")
+
+        db.delete(station_ranch_model)
+        db.commit()
