@@ -93,7 +93,7 @@ async def delete_ranch(user:user_dependency,db: db_dependency, ranch_id: int):
         raise HTTPException(status_code=401, detail='Authentication Failed')
     ranch_model = db.query(Ranches).filter(Ranches.id == ranch_id).first()
     if ranch_model is None:
-        raise HTTPException(status_code=404, detail='User not found.')
+        raise HTTPException(status_code=404, detail='Ranch not found.')
 
     db.query(Ranches).filter(Ranches.id == ranch_id).delete()
     db.commit()
