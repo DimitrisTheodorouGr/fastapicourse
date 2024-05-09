@@ -72,10 +72,10 @@ async def  get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
         user_id: int = payload.get('id')
         user_role: str = payload.get('role')
         if username is None or user_id is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate user")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Could not validate user")
         return {'username': username, 'user_id': user_id, 'user_role': user_role}
     except JWTError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate user")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Could not validate user")
 #Dependancy connection
 db_dependency = Annotated[Session, Depends(get_db)]
 user_dependency = Annotated[dict, Depends(get_current_user)]
