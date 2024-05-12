@@ -56,15 +56,15 @@ class Animals(Base):
 class HealthRec(Base):
     __tablename__ = 'health_record'
     id = Column(Integer, primary_key=True)
-    animal_id = Column(Integer, ForeignKey('animal.id'))
+    animal_id = Column(Integer, ForeignKey('animals.id'))
     head_injury = Column(Boolean, default=False)
-    skin_condition = Column(Boolean, default=False)
+    skin_conditions = Column(Boolean, default=False)
     abscess = Column(Boolean, default=False)
     arthritis = Column(Boolean, default=False)
     swollen_hooves = Column(Boolean, default=False)
     mastitis = Column(Boolean, default=False)
     fibrosis = Column(Boolean, default=False)
-    assymmetry = Column(Boolean, default=False)
+    asymmetry = Column(Boolean, default=False)
     mammary_skin_conditions = Column(String)
     cmt_a = Column(Boolean, default=False)
     cmt_d = Column(Boolean, default=False)
