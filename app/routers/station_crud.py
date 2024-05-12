@@ -1,5 +1,3 @@
-from sqlalchemy.testing.pickleable import User
-
 from app.database import SessionLocal
 from app.models import Users, Station, StationData, StationRanches,Ranches,UserRanches
 from .auth import get_current_user
