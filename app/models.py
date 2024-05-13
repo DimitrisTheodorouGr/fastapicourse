@@ -107,6 +107,22 @@ class StationRanches(Base):
     station = relationship('Station', back_populates='ranch')
     ranch2 = relationship('Ranches', back_populates='stations')
 
+class WellIndex(Base):
+    __tablename__ = 'wellbeing_index'
+    id = Column(Integer, primary_key=True)
+    ranch_id = Column(Integer, ForeignKey('ranches.id'))
+    index_value = Column(Float)
+    created_at = Column(DateTime)
+    updated_at = Column(DateTime)
+
+class Dairy_Milk(Base):
+    __tablename__ = 'dairy_milk'
+    id = Column(Integer, primary_key=True)
+    ranch_id = Column(Integer, ForeignKey('ranches.id'))
+    milk_quality = Column(Float)
+    milk_quantity = Column(Float)
+    created_at = Column(DateTime)
+    updated_at = Column(DateTime)
 
 
 
