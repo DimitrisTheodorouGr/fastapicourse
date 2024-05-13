@@ -24,6 +24,7 @@ class AnimalInfoResponse(BaseModel):
 class AnimalRequest(BaseModel):
     ranch_id: int = Field(gt=0)
     tag: str = Field(maxlength=12)
+    status: bool
     age: int = Field(gt=0)
     type: str
 
@@ -88,11 +89,12 @@ async def create_animal(user: user_dependency, db:db_dependency, animalrequest:A
 async def update_animal(user: user_dependency, db:db_dependency, animaleditrequest:AnimalRequest, animal_id:int=Path(gt=0)):
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
-    animal_model = db.query(Animals).filter(Animals.id ==animal_id)
+    animal_model = db.query(Animals).filter(Animals.id == animal_id).first()
     if animal_model is None:
         raise HTTPException(status_code=404, detail='Animal not found')
     animal_model.tag = animaleditrequest.tag
     animal_model.age = animaleditrequest.age
+    animal_model.type = animaleditrequest.type
     animal_model.status = animaleditrequest.status
     animal_model.ranch_id = animaleditrequest.ranch_id
     animal_model.updated_at = datetime.now()
@@ -103,7 +105,7 @@ async def update_animal(user: user_dependency, db:db_dependency, animaleditreque
 async def delete_animal(user: user_dependency, db:db_dependency, animal_id:int=Path(gt=0)):
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
-    animal_query = db.query(Animals).filter(Animals.id == animal_id).first
+    animal_query = db.query(Animals).filter(Animals.id == animal_id).first()
     if animal_query is None:
         raise HTTPException(status_code=404, detail='Animal Not Found')
     db.delete(animal_query)
@@ -157,7 +159,7 @@ async def create_health_record(user: user_dependency, db:db_dependency, health_r
 async def delete_health_record(user: user_dependency, db:db_dependency, record_id:int=Path(gt=0)):
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
-    query = db.query(HealthRec).filter(HealthRec.id == record_id).first
+    query = db.query(HealthRec).filter(HealthRec.id == record_id).first()
     if query is None:
         raise HTTPException(status_code=404, detail='Health Record Not Found')
     db.delete(query)
