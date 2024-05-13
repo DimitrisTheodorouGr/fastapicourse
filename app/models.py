@@ -115,7 +115,14 @@ class WellIndex(Base):
     created_at = Column(DateTime)
     updated_at = Column(DateTime)
 
-
+class Dairy_Milk(Base):
+    __tablename__ = 'dairy_milk'
+    id = Column(Integer, primary_key=True)
+    ranch_id = Column(Integer, ForeignKey('ranches.id'))
+    milk_quality = Column(Float)
+    milk_quantity = Column(Float)
+    created_at = Column(DateTime)
+    updated_at = Column(DateTime)
 
 
 
