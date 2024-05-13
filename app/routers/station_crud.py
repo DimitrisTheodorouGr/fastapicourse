@@ -58,6 +58,29 @@ def get_station_list_based_on_role(user:user_dependency, db: db_dependency):
 
     elif user.get('user_role') == 'admin':
         return db.query(Station).all()
+@router.get('/location/' , status_code=status.HTTP_200_OK)
+def get_location(user:user_dependency,db: db_dependency):
+    if user is None:
+        raise HTTPException(status_code=401, detail='Authentication Failed')
+
+    stations = db.query(Station).join(StationRanches, Station.id == StationRanches.station_id)\
+            .join(UserRanches, StationRanches.ranch_id == UserRanches.ranch_id)\
+            .filter(UserRanches.user_id == user.get('user_id'))\
+            .distinct().all()
+    if stations is None:
+        raise HTTPException(status_code=404, detail="Stations not found")
+    # Building the GeoJSON object
+
+    return {
+      "type": "FeatureCollection",
+      "features": [{
+            "type": "Feature",
+            "geometry": station.location_geojson(),
+            "properties": {
+                "id": station.id,
+                "name": station.station_name
+            }
+        } for station in stations]}
 @router.post('/', status_code=status.HTTP_201_CREATED)
 def create_station(user:user_dependency, db: db_dependency, create_station_request: StationRequest):
     if user is None:
