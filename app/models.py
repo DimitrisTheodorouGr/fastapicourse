@@ -1,7 +1,9 @@
 from .database import Base
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey,DateTime, Float
 from sqlalchemy.orm import relationship
-
+from geoalchemy2 import Geometry
+from geoalchemy2.shape import to_shape
+import json
 class Ranches(Base):
     __tablename__ = 'ranches'
 
@@ -51,7 +53,7 @@ class Animals(Base):
     created_at = Column(DateTime)
     updated_at = Column(DateTime)
     age = Column(Integer)
-    status = Column(Boolean) # 0 = Dead, 1 = Alive
+    status = Column(Boolean)  # 0 = Dead, 1 = Alive
 
 class HealthRec(Base):
     __tablename__ = 'health_record'
@@ -76,6 +78,13 @@ class Station(Base):
     __tablename__ = 'stations'
     id = Column(Integer, primary_key=True)
     station_name = Column(String)
+    location = Column(Geometry('POINT', srid=4326))
+
+    def location_geojson(self):
+        # Convert the Geometry to a Shapely geometry object and then to GeoJSON
+        shape = to_shape(self.location)
+        return json.loads(json.dumps(shape.__geo_interface__))
+
     # Define a relationship to StationRanches
     ranch = relationship('StationRanches', back_populates='station')
 
