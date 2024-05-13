@@ -7,6 +7,7 @@ from starlette import status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from datetime import datetime,date
+from geoalchemy2 import WKTElement
 
 
 router = APIRouter(
@@ -15,6 +16,8 @@ router = APIRouter(
 )
 class StationRequest(BaseModel):
     station_name: str
+    latitude: float
+    longitude: float
 class StationDataRequest(BaseModel):
     station_id: int
     timestamp: datetime
@@ -85,10 +88,11 @@ def get_location(user:user_dependency,db: db_dependency):
 def create_station(user:user_dependency, db: db_dependency, create_station_request: StationRequest):
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
+    # Create a WKT point string from latitude and longitude
+    wkt_point = f'POINT({create_station_request.latitude} {create_station_request.longitude})'
     create_station_model = Station(
-        name=create_station_request.name,
-        created_at=datetime.now(),
-        updated_at=datetime.now(),
+        station_name=create_station_request.station_name,
+        location=WKTElement(wkt_point, srid=4326)
     )
     db.add(create_station_model)
     db.commit()
@@ -100,8 +104,11 @@ def update_station_info( user: user_dependency, db: db_dependency, edit_station_
     edit_station_model = db.query(Station).filter(Station.id == station_id).first()
     if edit_station_model is None:
         return HTTPException(status_code=404, detail='Station not fount')
-    edit_station_model.name = edit_station_request.station_name
+
+    wkt_point = f'POINT({edit_station_request.latitude} {edit_station_request.longitude})'
+    edit_station_model.station_name = edit_station_request.station_name
     edit_station_model.updated_at = datetime.now()
+    edit_station_model.location = WKTElement(wkt_point, srid=4326)
     db.add(edit_station_model)
     db.commit()
 
