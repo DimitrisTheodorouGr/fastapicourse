@@ -133,8 +133,26 @@ class Dairy_Milk(Base):
     created_at = Column(DateTime)
     updated_at = Column(DateTime)
 
+class Collars(Base):
+    __tablename__ = 'collars'
+    id = Column(Integer, primary_key=True)
+    dev_eui = Column(String)
+    animal_id = Column(Integer, ForeignKey('animals.id'))
+    created_at = Column(DateTime)
+    updated_at = Column(DateTime)
 
-
-
+class CollarGPSData(Base):
+    __tablename__ = 'collar_gps_data'
+    id = Column(Integer, primary_key=True)
+    collar_id = Column(Integer, ForeignKey('collars.id'))
+    coordinates = Column(Geometry('POINT', srid=4326))
+    temperature = Column(Float)
+    created_at = Column(DateTime)
+    updated_at = Column(DateTime)
+    timestamp = Column(DateTime)
+    def coordinates_geojson(self):
+        # Convert the Geometry to a Shapely geometry object and then to GeoJSON
+        shape = to_shape(self.coordinates)
+        return json.loads(json.dumps(shape.__geo_interface__))
 
 
