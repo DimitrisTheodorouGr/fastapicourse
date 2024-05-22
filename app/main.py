@@ -12,7 +12,8 @@ from sqlalchemy.orm import Session
 origins = [
     "http://localhost",
     "http://localhost:8000",
-    "https://project-wellness.ece.uowm.gr",
+    "http://localhost:5173",
+    "https://project-wellness.ece.uowm.gr"
 ]
 
 app = FastAPI(root_path="/wellness-api")
