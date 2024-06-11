@@ -100,7 +100,7 @@ async def create_collar(user: user_dependency, db: db_dependency, create_collar_
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
     collar_model = Collars(
-        dev_eui=create_collar_request.dev_eui,
+        dev_eui=create_collar_request.collar_dev_eui,
         animal_id=create_collar_request.animal_id,
         created_at=datetime.now(),
         updated_at=datetime.now()
@@ -116,7 +116,7 @@ async def edit_collar(user: user_dependency, db: db_dependency, edit_collar_requ
     if collar_model is None:
         return HTTPException(status_code=404, detail='Collar not fount')
 
-    collar_model.dev_eui = edit_collar_request.dev_eui,
+    collar_model.dev_eui = edit_collar_request.collar_dev_eui,
     collar_model.animal_id = edit_collar_request.animal_id,
     collar_model.updated_at = datetime.now()
 
