@@ -15,6 +15,7 @@ router = APIRouter(
 )
 class AnimalInfoResponse(BaseModel):
     ranch_name: str
+    animal_id: int
     animal_tag: str
     animal_age: int
     animal_type: str
@@ -60,13 +61,13 @@ def get_animal_list_based_on_role(user:user_dependency, db: db_dependency):
         raise HTTPException(status_code=401, detail='Authentication Failed')
     elif user.get('user_role') == 'rancher' or user.get('user_role') == 'vet':
 
-        return db.query(UserRanches.user_id, Ranches.name.label('ranch_name'), Animals.type.label('animal_type'), Animals.tag.label('animal_tag'),
+        return db.query(UserRanches.user_id, Ranches.name.label('ranch_name'), Animals.type.label('animal_type'), Animals.tag.label('animal_tag'),Animals.id.label('animal_id'),
                          Animals.age.label('animal_age'),Animals.status.label('animal_status'), Animals.created_at.label('created_at'), Animals.updated_at.label('updated_at')) \
             .join(Ranches, UserRanches.ranch_id == Ranches.id) \
             .join(Animals, Ranches.id == Animals.ranch_id) \
             .filter(UserRanches.user_id == user.get('user_id')).all()
     elif user.get('user_role') == 'admin':
-        return db.query(UserRanches.user_id, Ranches.name.label('ranch_name'), Animals.type.label('animal_type'), Animals.tag.label('animal_tag'),
+        return db.query(UserRanches.user_id, Ranches.name.label('ranch_name'), Animals.type.label('animal_type'), Animals.tag.label('animal_tag'),Animals.id.label('animal_id'),
                          Animals.age.label('animal_age'),Animals.status.label('animal_status'), Animals.created_at.label('created_at'), Animals.updated_at.label('updated_at')) \
                 .join(Ranches, UserRanches.ranch_id == Ranches.id) \
                 .join(Animals, Ranches.id == Animals.ranch_id).all()
