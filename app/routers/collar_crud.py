@@ -79,21 +79,38 @@ def get_collar_list_based_on_role(user:user_dependency, db: db_dependency):
 def get_animal_list_without_collar_based_on_role(user:user_dependency, db: db_dependency):
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
-    results = db.query(
-        Animals.id.label('animal_id'),
-        Animals.type.label('animal_type'),
-        Animals.tag.label('animal_tag'),
-        Ranches.name.label('ranch_name')
-    ).join(Ranches, Ranches.id == Animals.ranch_id) \
-        .join(UserRanches, UserRanches.ranch_id == Ranches.id) \
-        .outerjoin(Collars, Animals.id == Collars.animal_id) \
-        .filter(UserRanches.user_id == user.get('user_id'), Collars.id.is_(None)) \
-        .all()
+    elif user.get('user_role') == 'rancher' or user.get('user_role') == 'vet':
+        results = db.query(
+            Animals.id.label('animal_id'),
+            Animals.type.label('animal_type'),
+            Animals.tag.label('animal_tag'),
+            Ranches.name.label('ranch_name')
+        ).join(Ranches, Ranches.id == Animals.ranch_id) \
+            .join(UserRanches, UserRanches.ranch_id == Ranches.id) \
+            .outerjoin(Collars, Animals.id == Collars.animal_id) \
+            .filter(UserRanches.user_id == user.get('user_id'), Collars.id.is_(None)) \
+            .all()
+        if not results:
+            raise HTTPException(status_code=404, detail="No animals without collars found for this user's ranches")
 
-    if not results:
-        raise HTTPException(status_code=404, detail="No animals without collars found for this user's ranches")
+        return results
+    elif user.get('user_role') == 'admin':
+        results = db.query(
+            Animals.id.label('animal_id'),
+            Animals.type.label('animal_type'),
+            Animals.tag.label('animal_tag'),
+            Ranches.name.label('ranch_name')
+        ).join(Ranches, Ranches.id == Animals.ranch_id) \
+            .join(UserRanches, UserRanches.ranch_id == Ranches.id) \
+            .outerjoin(Collars, Animals.id == Collars.animal_id) \
+            .filter(Collars.id.is_(None)) \
+            .all()
+        if not results:
+            raise HTTPException(status_code=404, detail="No animals without collars found for this user's ranches")
 
-    return results
+        return results
+
+
 
 @router.post('/', status_code=status.HTTP_201_CREATED)
 async def create_collar(user: user_dependency, db: db_dependency, create_collar_request: CollarRequest):
