@@ -158,8 +158,24 @@ async def create_station_data(user: user_dependency, db: db_dependency, station_
 def delete_data_by_id(user: user_dependency, db: db_dependency, data_id: int = Path(gt=0)):
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
-    station_data_query = db.query(StationData).filter(StationData.id == data_id).first
+    station_data_query = db.query(StationData).filter(StationData.id == data_id).first()
     if station_data_query is None:
         raise HTTPException(status_code=404, detail='Data Not Found')
     db.delete(station_data_query)
     db.commit()
+@router.get("/data/last")
+def get_last_station_data(user: user_dependency,
+                              db: db_dependency,
+                              station_id: int = Query(ge=0)):
+    if user is None:
+        raise HTTPException(status_code=401, detail='Authentication Failed')
+
+    query = db.query(StationData).filter(StationData.station_id == station_id).order_by(
+            StationData.timestamp.desc()).first()
+
+    if query is None:
+        raise HTTPException(status_code=404, detail='Data not found')
+
+    return query
+
+
