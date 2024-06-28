@@ -42,7 +42,7 @@ user_dependency = Annotated[dict, Depends(get_current_user)]
 async def read_all_ranches_based_on_role(user:user_dependency, db: db_dependency):
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
-    elif user.get('user_role') == 'rancher':
+    elif user.get('user_role') == 'rancher' or user.get('user_role') == 'vet':
         return db.query(Ranches).join(UserRanches, UserRanches.ranch_id == Ranches.id).filter(UserRanches.user_id == user.get('user_id')).all()
     elif user.get('user_role') == 'admin':
         return db.query(Ranches).all()
