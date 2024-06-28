@@ -53,11 +53,14 @@ async def read_ranch_by_id(user:user_dependency, db: db_dependency, ranch_id: in
         raise HTTPException(status_code=401, detail='Authentication Failed')
 
     return db.query(Ranches).filter(Ranches.id == ranch_id).first()
+
+
 @router.post('/', status_code=status.HTTP_201_CREATED)
 async def create_ranch(user: user_dependency, db: db_dependency, create_ranch_request: RanchRequest):
-
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
+
+    # Create the ranch model
     create_ranch_model = Ranches(
         name=create_ranch_request.name,
         created_at=datetime.now(),
@@ -67,8 +70,21 @@ async def create_ranch(user: user_dependency, db: db_dependency, create_ranch_re
         milked_animals=create_ranch_request.milked_animals,
         milk_yield_per_year=create_ranch_request.milk_yield_per_year
     )
+    # Add and commit the ranch model to get the ID
     db.add(create_ranch_model)
     db.commit()
+    db.refresh(create_ranch_model)  # This will populate the ID field of create_ranch_model
+
+    # Create the user ranch model with the ranch ID
+    create_user_ranch_model = UserRanches(
+        user_id=user.get('user_id'),
+        ranch_id=create_ranch_model.id  # Use the ID from the created ranch
+    )
+
+    # Add and commit the user ranch model
+    db.add(create_user_ranch_model)
+    db.commit()
+    return {"message": "Ranch created successfully"}
 @router.put("/{ranch_id}",status_code=status.HTTP_204_NO_CONTENT)
 async def update_ranch(user: user_dependency,db: db_dependency, update_ranch_request: RanchRequest, ranch_id: int = Path(gt=0)):
     if user is None:
@@ -97,19 +113,34 @@ async def delete_ranch(user:user_dependency,db: db_dependency, ranch_id: int):
 
     db.query(Ranches).filter(Ranches.id == ranch_id).delete()
     db.commit()
-@router.post('/associate/{ranch_id}', status_code=status.HTTP_201_CREATED)
-async def associate_ranch(user:user_dependency,db: db_dependency, create_user_ranch_request: UserRanchRequest):
+@router.post('/associate/{farm_id}', status_code=status.HTTP_201_CREATED)
+async def associate_ranch(user:user_dependency,db: db_dependency, farm_id: str):
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
-    ranch_model = db.query(UserRanches).filter(UserRanches.ranch_id == create_user_ranch_request.ranch_id).first()
-    if ranch_model is not None:
-        return {'message': 'Ranch already associated with an other user'}
+
+        # Query the ranch to get the ranch_id using farm_id
+    ranch = db.query(Ranches).filter(Ranches.farm_id == farm_id).first()
+    if not ranch:
+        raise HTTPException(status_code=404, detail='Ranch not found')
+
+    # Check if the user is already associated with this ranch
+    existing_association = db.query(UserRanches).filter(
+        UserRanches.user_id == user.get('user_id'),
+        UserRanches.ranch_id == ranch.id
+    ).first()
+
+    if existing_association:
+        raise HTTPException(status_code=400, detail='User already associated with this ranch')
+
+    # Create the UserRanches model using the found ranch_id
     create_user_ranch_model = UserRanches(
         user_id=user.get('user_id'),
-        ranch_id=create_user_ranch_request.ranch_id
-        )
+        ranch_id=ranch.id
+    )
     db.add(create_user_ranch_model)
     db.commit()
+
+    return {"message": "User associated with ranch successfully"}
 @router.delete("/associate/{ranch_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def disassociate_ranch_from_user(user:user_dependency, db: db_dependency, ranch_id: int):
     if user is None:
