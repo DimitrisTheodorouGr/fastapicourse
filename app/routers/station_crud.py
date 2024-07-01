@@ -139,7 +139,7 @@ async def create_station_data(user: user_dependency, db: db_dependency, station_
         station_id=station_data_request.station_id,
         timestamp=station_data_request.timestamp,
         temperature=station_data_request.temperature,
-        humidity=station_data_request.pressure,
+        humidity=station_data_request.humidity,
         precipitation=station_data_request.precipitation,
         pressure=station_data_request.pressure,
         wind_speed=station_data_request.wind_speed,
