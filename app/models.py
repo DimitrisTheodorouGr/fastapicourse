@@ -99,7 +99,7 @@ class StationData(Base):
     pressure = Column(Float)
     wind_speed = Column(Float)
     wind_direction = Column(Float)
-    solar_radiation = Column(Float, nullable=True)
+    solar_radiation = Column(Float)
     PM1 = Column(Float)
     PM2_5 = Column(Float)
     PM10 = Column(Float)
