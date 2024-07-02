@@ -104,7 +104,7 @@ class StationData(Base):
     PM2_5 = Column(Float)
     PM10 = Column(Float)
     CO2 = Column(Float, nullable=True),
-    AQI = Column(Float, nullable=True),
+    aqi = Column(Float, nullable=True),
     created_at = Column(DateTime)
     updated_at = Column(DateTime)
 class StationRanches(Base):
