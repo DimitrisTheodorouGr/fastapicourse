@@ -31,7 +31,7 @@ class StationDataRequest(BaseModel):
     PM1: float
     PM2_5: float
     PM10: float
-    CO2: float
+    CO2: Optional[float] = None
 def get_db():
     db = SessionLocal()
     try:
