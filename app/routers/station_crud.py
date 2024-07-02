@@ -27,7 +27,7 @@ class StationDataRequest(BaseModel):
     pressure: float
     wind_speed: float
     wind_direction: float
-    solar_radiation: float
+    solar_radiation: Optional[float] = None
     PM1: float
     PM2_5: float
     PM10: float
