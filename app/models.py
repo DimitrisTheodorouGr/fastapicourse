@@ -99,12 +99,11 @@ class StationData(Base):
     pressure = Column(Float)
     wind_speed = Column(Float)
     wind_direction = Column(Float)
-    solar_radiation = Column(Float)
+    solar_radiation = Column(Float, nullable=True)
     PM1 = Column(Float)
     PM2_5 = Column(Float)
     PM10 = Column(Float)
     CO2 = Column(Float, nullable=True)
-    AQI = Column(Float, nullable=True)
     created_at = Column(DateTime)
     updated_at = Column(DateTime)
 class StationRanches(Base):

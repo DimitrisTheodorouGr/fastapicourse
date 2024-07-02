@@ -27,12 +27,11 @@ class StationDataRequest(BaseModel):
     pressure: float
     wind_speed: float
     wind_direction: float
-    solar_radiation: float
+    solar_radiation: Optional[float] = None
     PM1: float
     PM2_5: float
     PM10: float
     CO2: Optional[float] = None
-    AQI: Optional[float] = None 
 def get_db():
     db = SessionLocal()
     try:
@@ -150,7 +149,6 @@ async def create_station_data(user: user_dependency, db: db_dependency, station_
         PM2_5=station_data_request.PM2_5,
         PM10=station_data_request.PM10,
         CO2=station_data_request.CO2,
-        AQI=station_data_request.AQI,
         created_at=datetime.now(),
         updated_at=datetime.now(),
         )
