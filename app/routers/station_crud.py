@@ -45,12 +45,12 @@ db_dependency = Annotated[Session, Depends(get_db)]
 user_dependency = Annotated[dict, Depends(get_current_user)]
 
 @router.get('/' , status_code=status.HTTP_200_OK)
-def get_station_list_based_on_role(user:user_dependency, db: db_dependency):
+def get_station_list_based_on_role_associated_with_ranches(user:user_dependency, db: db_dependency):
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
     elif user.get('user_role') == 'rancher' or user.get('user_role') == 'vet':
         query = (
-            db.query(Station.station_name, Station.id)
+            db.query(Station.station_name, Station.id, StationRanches.ranch_id)
             .join(StationRanches, Station.id == StationRanches.station_id)
             .join(UserRanches, StationRanches.ranch_id == UserRanches.ranch_id)
             .filter(UserRanches.user_id == user.get('user_id'))
@@ -58,18 +58,51 @@ def get_station_list_based_on_role(user:user_dependency, db: db_dependency):
         )
         # Execute the query
         stations = query.all()
-        return [{"station_name": station.station_name, "station_id": station.id} for station in stations]
+        return [{"station_name": station.station_name, "station_id": station.id, "ranch_id": station.ranch_id} for station in stations]
 
     elif user.get('user_role') == 'admin':
-        return db.query(Station).all()
+        query = (
+            db.query(Station.station_name, Station.id, StationRanches.ranch_id)
+            .join(StationRanches, Station.id == StationRanches.station_id)
+            .join(UserRanches, StationRanches.ranch_id == UserRanches.ranch_id)
+            .distinct()
+        )
+        # Execute the query
+        stations = query.all()
+
+        return [{"station_name": station.station_name, "station_id": station.id, "ranch_id": station.ranch_id} for station in stations]
+@router.get('/all' , status_code=status.HTTP_200_OK)
+def get_station_list_based_on_role(user:user_dependency, db: db_dependency):
+    if user is None:
+        raise HTTPException(status_code=401, detail='Authentication Failed')
+    elif user.get('user_role') == 'rancher' or user.get('user_role') == 'vet':
+        query = (
+            db.query(Station.station_name, Station.id, StationRanches.ranch_id)
+            .join(StationRanches, Station.id == StationRanches.station_id)
+            .join(UserRanches, StationRanches.ranch_id == UserRanches.ranch_id)
+            .filter(UserRanches.user_id == user.get('user_id'))
+            .distinct()
+        )
+        # Execute the query
+        stations = query.all()
+        return [{"station_name": station.station_name, "station_id": station.id, "ranch_id": station.ranch_id} for station in stations]
+
+    elif user.get('user_role') == 'admin':
+        stations = db.query(Station).distinct().all()
+        return [{"station_name": station.station_name, "station_id": station.id} for
+                station in stations]
 @router.get('/location/' , status_code=status.HTTP_200_OK)
 def get_location(user:user_dependency,db: db_dependency):
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
-
-    stations = db.query(Station).join(StationRanches, Station.id == StationRanches.station_id)\
-            .join(UserRanches, StationRanches.ranch_id == UserRanches.ranch_id)\
-            .filter(UserRanches.user_id == user.get('user_id'))\
+    elif user.get('user_role') == 'rancher' or user.get('user_role') == 'vet':
+        stations = db.query(Station).join(StationRanches, Station.id == StationRanches.station_id)\
+                .join(UserRanches, StationRanches.ranch_id == UserRanches.ranch_id)\
+                .filter(UserRanches.user_id == user.get('user_id'))\
+                .distinct().all()
+    elif user.get('user_role') == 'admin':
+        stations = db.query(Station).join(StationRanches, Station.id == StationRanches.station_id) \
+            .join(UserRanches, StationRanches.ranch_id == UserRanches.ranch_id) \
             .distinct().all()
     if stations is None:
         raise HTTPException(status_code=404, detail="Stations not found")
