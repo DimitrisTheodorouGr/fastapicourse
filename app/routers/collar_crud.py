@@ -37,7 +37,10 @@ class CollarDataRequest(BaseModel):
     collar_id: int = Field(gt=0)
     latitude: float
     longitude: float
-    temperature:float
+    temperature: float
+    battery_percentage: float
+    altitude: float
+    humidity: float
     timestamp: datetime
 
 def get_db():
@@ -159,6 +162,9 @@ async def create_collar_data(user: user_dependency, db: db_dependency, create_co
         collar_id=create_collar_data_request.collar_id,
         coordinates=WKTElement(wkt_point, srid=4326) ,
         temperature=create_collar_data_request.temperature,
+        battery_percentage=create_collar_data_request.battery_percentage,
+        altitude=create_collar_data_request.altitude,
+        humidity=create_collar_data_request.humidity,
         created_at=datetime.now(),
         updated_at=datetime.now(),
         timestamp=create_collar_data_request.timestamp,
@@ -199,9 +205,57 @@ async def get_collar_data_geojson(user: user_dependency, db: db_dependency,
             "properties": {
                 "id": data.id,
                 "temperature": data.temperature,
+                "battery_percentage": data.battery_percentage,
+                "altitude": data.altitude,
+                "humidity": data.humidity,
                 "timestamp": data.timestamp
             }
         } for data in collar_data]}
+@router.get('/data/values_only',status_code=status.HTTP_200_OK)
+async def get_collar_data_values_only(user: user_dependency, db: db_dependency,
+                                  collar_id: int,
+                                  limit: Optional[int] = Query(50, title="Max number of data returned", ge=0),
+                                  start_date: Optional[date] = Query(None, title="Start date of the range"),
+                                  end_date: Optional[date] = Query(None, title="End date of the range")):
+    if user is None:
+        raise HTTPException(status_code=401, detail='Authentication Failed')
+
+    query = db.query(CollarGPSData).filter(CollarGPSData.collar_id == collar_id)
+    if query is None:
+        raise HTTPException(status_code=404, detail="Gps data not found")
+    # Building the GeoJSON object
+
+    if start_date and end_date:
+        query = query.filter(CollarGPSData.timestamp >= start_date, CollarGPSData.timestamp <= end_date)
+    elif start_date:
+        query = query.filter(CollarGPSData.timestamp >= start_date)
+    elif end_date:
+        query = query.filter(CollarGPSData.timestamp <= end_date)
+
+
+    if limit is not None:  # Ensuring the limit is considered only if provided
+        query = query.limit(limit)
+    collar_data = query.all()
+    return [{   "id": data.id,
+                "temperature": data.temperature,
+                "battery_percentage": data.battery_percentage,
+                "altitude": data.altitude,
+                "humidity": data.humidity,
+                "timestamp": data.timestamp
+            } for data in collar_data]
+@router.get("/data/battery")
+def get_last_battery_data(user: user_dependency, db: db_dependency, collar_id: int = Query(ge=0)):
+    if user is None:
+        raise HTTPException(status_code=401, detail='Authentication Failed')
+
+    query = db.query(CollarGPSData).filter(CollarGPSData.collar_id == collar_id).order_by(
+        CollarGPSData.timestamp.desc()).first()
+
+    if query is None:
+        raise HTTPException(status_code=404, detail='Data not found')
+
+    return {"battery": query.battery_percentage}
+
 @router.get('/data/route', status_code=status.HTTP_200_OK)
 async def get_collar_data_route_geojson(user: user_dependency, db: db_dependency,
                                   collar_id: int,
