@@ -107,7 +107,12 @@ async def create_user(db: db_dependency,create_user_request: CreateUserRequest):
         )
     db.add(create_user_model)
     db.commit()
-
+@router.get("/getuser",status_code=status.HTTP_200_OK)
+async def get_user_info(user: user_dependency, db: db_dependency):
+    if user is None:
+        raise HTTPException(status_code=401, detail='Authentication Failed')
+    query = db.query(Users).filter(Users.id == user.get('user_id'))
+    return {"username": query.first().username, "email": query.first().email, "role": query.first().role}
 @router.put("/change-password", status_code=status.HTTP_204_NO_CONTENT)
 async def change_password(user: user_dependency, db: db_dependency,
                           user_verification: UserVerification):
