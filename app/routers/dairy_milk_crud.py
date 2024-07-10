@@ -38,19 +38,41 @@ db_dependency = Annotated[Session, Depends(get_db)]
 user_dependency = Annotated[dict, Depends(get_current_user)]
 
 @router.get('/' ,response_model= List[DairyMilkInfoResponse], status_code=status.HTTP_200_OK)
-def get_dairy_milk_list_based_on_role(user:user_dependency, db: db_dependency):
+def get_dairy_milk_list_based_on_role(user:user_dependency, db: db_dependency,
+    limit: Optional[int] = Query(50, title="Max number of data returned", ge=0),
+    start_date: Optional[date] = Query(None, title="Start date of the range"),
+    end_date: Optional[date] = Query(None, title="End date of the range")):
     if user is None:
-        raise HTTPException(status_code=401, detail='Authentication Failed')
-    elif user.get('user_role') == 'cheesemaker' or user.get('user_role') == 'rancher' or user.get('user_role') == 'vet':
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Authentication Failed')
 
-        return db.query(UserRanches.user_id, Ranches.name.label('ranch_name'), Dairy_Milk.milk_quality.label('milk_quality'), Dairy_Milk.milk_quantity.label('milk_quantity'), Dairy_Milk.created_at.label('created_at'), Dairy_Milk.updated_at.label('updated_at')) \
-            .join(Ranches, UserRanches.ranch_id == Ranches.id) \
-            .join(Dairy_Milk, Ranches.id == Dairy_Milk.ranch_id) \
-            .filter(UserRanches.user_id == user.get('user_id')).all()
+    query = db.query(
+        UserRanches.user_id,
+        Ranches.name.label('ranch_name'),
+        Dairy_Milk.milk_quality.label('milk_quality'),
+        Dairy_Milk.milk_quantity.label('milk_quantity'),
+        Dairy_Milk.created_at.label('created_at'),
+        Dairy_Milk.updated_at.label('updated_at')
+    ).join(Ranches, UserRanches.ranch_id == Ranches.id) \
+        .join(Dairy_Milk, Ranches.id == Dairy_Milk.ranch_id)
+
+    if user.get('user_role') in ['cheesemaker', 'rancher', 'vet']:
+        query = query.filter(UserRanches.user_id == user.get('user_id'))
     elif user.get('user_role') == 'admin':
-        return db.query(UserRanches.user_id, Ranches.name.label('ranch_name'), Dairy_Milk.milk_quality.label('milk_quality'), Dairy_Milk.milk_quantity.label('milk_quantity'), Dairy_Milk.created_at.label('created_at'), Dairy_Milk.updated_at.label('updated_at')) \
-                .join(Ranches, UserRanches.ranch_id == Ranches.id) \
-                .join(Dairy_Milk, Ranches.id == Dairy_Milk.ranch_id).all()
+        pass  # No additional filtering needed for admin
+    else:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Insufficient permissions')
+
+    if start_date and end_date:
+        query = query.filter(Dairy_Milk.created_at >= start_date, Dairy_Milk.created_at <= end_date)
+    elif start_date:
+        query = query.filter(Dairy_Milk.created_at >= start_date)
+    elif end_date:
+        query = query.filter(Dairy_Milk.created_at <= end_date)
+
+    if limit is not None:  # Ensuring the limit is considered only if provided
+        query = query.limit(limit)
+
+    return query.all()
     
 @router.post('/' , status_code=status.HTTP_201_CREATED)
 async def create_dairy_milk(user: user_dependency, db:db_dependency, dairymilkrequest:DairyMilkRequest):
