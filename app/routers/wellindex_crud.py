@@ -36,20 +36,52 @@ db_dependency = Annotated[Session, Depends(get_db)]
 user_dependency = Annotated[dict, Depends(get_current_user)]
 
 @router.get('/' ,response_model= List[WellIndexInfoResponse], status_code=status.HTTP_200_OK)
-def get_wellindex_list_based_on_role(user:user_dependency, db: db_dependency):
+def get_wellindex_list_based_on_role(user:user_dependency, db: db_dependency,
+                                    limit: Optional[int] = Query(50, title="Max number of data returned", ge=0),
+                                    start_date: Optional[date] = Query(None, title="Start date of the range"),
+                                    end_date: Optional[date] = Query(None, title="End date of the range")):
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Authentication Failed')
+
+    query = db.query(
+        UserRanches.user_id,
+        Ranches.name.label('ranch_name'),
+        WellIndex.index_value.label('index_value'),
+        WellIndex.created_at.label('created_at'),
+        WellIndex.updated_at.label('updated_at')
+    ).join(Ranches, UserRanches.ranch_id == Ranches.id) \
+        .join(WellIndex, Ranches.id == WellIndex.ranch_id)
+
+    if user.get('user_role') in ['rancher', 'vet']:
+        query = query.filter(UserRanches.user_id == user.get('user_id'))
+    elif user.get('user_role') == 'admin':
+        pass  # No additional filtering needed for admin
+    else:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Insufficient permissions')
+
+    if start_date and end_date:
+        query = query.filter(WellIndex.created_at >= start_date, WellIndex.created_at <= end_date)
+    elif start_date:
+        query = query.filter(WellIndex.created_at >= start_date)
+    elif end_date:
+        query = query.filter(WellIndex.created_at <= end_date)
+
+    if limit is not None:  # Ensuring the limit is considered only if provided
+        query = query.limit(limit)
+
+    return query.all()
+@router.get('/last/{ranch_id}', status_code=status.HTTP_200_OK)
+def get_wellindex_last(user: user_dependency, db: db_dependency, ranch_id: int = Path(gt=0)):
+
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
-    elif user.get('user_role') == 'rancher' or user.get('user_role') == 'vet':
 
-        return db.query(UserRanches.user_id, Ranches.name.label('ranch_name'), WellIndex.index_value.label('index_value'), WellIndex.created_at.label('created_at'), WellIndex.updated_at.label('updated_at')) \
-            .join(Ranches, UserRanches.ranch_id == Ranches.id) \
-            .join(WellIndex, Ranches.id == WellIndex.ranch_id) \
-            .filter(UserRanches.user_id == user.get('user_id')).all()
-    elif user.get('user_role') == 'admin':
-        return db.query(UserRanches.user_id, Ranches.name.label('ranch_name'), WellIndex.index_value.label('index_value'), WellIndex.created_at.label('created_at'), WellIndex.updated_at.label('updated_at')) \
-                .join(Ranches, UserRanches.ranch_id == Ranches.id) \
-                .join(WellIndex, Ranches.id == WellIndex.ranch_id).all()
-    
+    query = db.query(WellIndex).filter(WellIndex.ranch_id == ranch_id).order_by(
+        WellIndex.created_at.desc()).first()
+    if query is None:
+        raise HTTPException(status_code=404, detail='Data not found')
+
+    return query
 @router.post('/' , status_code=status.HTTP_201_CREATED)
 async def create_wellindex(user: user_dependency, db:db_dependency, wellindexrequest:WellIndexRequest):
     if user is None:
@@ -79,7 +111,7 @@ async def update_wellindex(user: user_dependency, db:db_dependency, update_welli
     db.commit()
 
 @router.delete("/{wellindex_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_wellindex(user:user_dependency,db: db_dependency, wellindex_id: int=Path(gt=0)):
+async def delete_wellindex(user:user_dependency,db: db_dependency, wellindex_id: int= Path(gt=0)):
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
     wellindex_query = db.query(WellIndex).filter(WellIndex.id == wellindex_id).first
