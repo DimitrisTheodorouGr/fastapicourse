@@ -53,14 +53,22 @@ def get_dairy_milk_list_based_on_role(user:user_dependency, db: db_dependency,
         Dairy_Milk.created_at.label('created_at'),
         Dairy_Milk.updated_at.label('updated_at')
     ).join(Ranches, UserRanches.ranch_id == Ranches.id) \
-        .join(Dairy_Milk, Ranches.id == Dairy_Milk.ranch_id)
+        .join(Dairy_Milk, Ranches.id == Dairy_Milk.ranch_id) \
+        .filter(UserRanches.user_id == user.get('user_id'))
 
-    if user.get('user_role') in ['cheesemaker', 'rancher', 'vet']:
-        query = query.filter(UserRanches.user_id == user.get('user_id'))
-    elif user.get('user_role') == 'admin':
-        pass  # No additional filtering needed for admin
+    if user.get('user_role') == 'admin':
+        query = db.query(
+            Ranches.name.label('ranch_name'),
+            Dairy_Milk.milk_quality.label('milk_quality'),
+            Dairy_Milk.milk_quantity.label('milk_quantity'),
+            Dairy_Milk.created_at.label('created_at'),
+            Dairy_Milk.updated_at.label('updated_at')
+        ).join(Ranches, Dairy_Milk.ranch_id == Ranches.id)
     else:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Insufficient permissions')
+        if user.get('user_role') in ['cheesemaker', 'rancher', 'vet']:
+            query = query.filter(UserRanches.user_id == user.get('user_id'))
+        else:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Insufficient permissions')
 
     if start_date and end_date:
         query = query.filter(Dairy_Milk.created_at >= start_date, Dairy_Milk.created_at <= end_date)
@@ -69,11 +77,11 @@ def get_dairy_milk_list_based_on_role(user:user_dependency, db: db_dependency,
     elif end_date:
         query = query.filter(Dairy_Milk.created_at <= end_date)
 
-    if limit is not None:  # Ensuring the limit is considered only if provided
+    if limit is not None:
         query = query.limit(limit)
 
     return query.all()
-    
+
 @router.post('/' , status_code=status.HTTP_201_CREATED)
 async def create_dairy_milk(user: user_dependency, db:db_dependency, dairymilkrequest:DairyMilkRequest):
     if user is None:
