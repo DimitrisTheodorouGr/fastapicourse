@@ -16,6 +16,7 @@ router = APIRouter(
 
 class DairyMilkInfoResponse(BaseModel):
     ranch_name: str
+    dairy_milk_id: int
     milk_quality: float
     milk_quantity: float
     created_at: datetime
@@ -37,8 +38,8 @@ def get_db():
 db_dependency = Annotated[Session, Depends(get_db)]
 user_dependency = Annotated[dict, Depends(get_current_user)]
 
-@router.get('/' ,response_model= List[DairyMilkInfoResponse], status_code=status.HTTP_200_OK)
-def get_dairy_milk_list_based_on_role(user:user_dependency, db: db_dependency,
+@router.get('/' ,response_model=List[DairyMilkInfoResponse], status_code=status.HTTP_200_OK)
+def get_dairy_milk_list_based_on_role(user: user_dependency, db: db_dependency,
     limit: Optional[int] = Query(50, title="Max number of data returned", ge=0),
     start_date: Optional[date] = Query(None, title="Start date of the range"),
     end_date: Optional[date] = Query(None, title="End date of the range")):
@@ -46,7 +47,7 @@ def get_dairy_milk_list_based_on_role(user:user_dependency, db: db_dependency,
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Authentication Failed')
 
     query = db.query(
-        UserRanches.user_id,
+        Dairy_Milk.id.label('dairy_milk_id'),  # Include dairy_milk_id
         Ranches.name.label('ranch_name'),
         Dairy_Milk.milk_quality.label('milk_quality'),
         Dairy_Milk.milk_quantity.label('milk_quantity'),
@@ -58,6 +59,7 @@ def get_dairy_milk_list_based_on_role(user:user_dependency, db: db_dependency,
 
     if user.get('user_role') == 'admin':
         query = db.query(
+            Dairy_Milk.id.label('dairy_milk_id'),  # Include dairy_milk_id
             Ranches.name.label('ranch_name'),
             Dairy_Milk.milk_quality.label('milk_quality'),
             Dairy_Milk.milk_quantity.label('milk_quantity'),
