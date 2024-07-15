@@ -60,7 +60,7 @@ class HealthRec(Base):
     id = Column(Integer, primary_key=True)
     animal_id = Column(Integer, ForeignKey('animals.id'))
     head_injury = Column(Boolean, default=False)
-    head_skin_condition = Column(Boolean, default=False)
+    head_skin_lesion = Column(Boolean, default=False)
     breast_abscesses = Column(Boolean, default=False)
     arthritis = Column(Boolean, default=False)
     oversized_hooves = Column(Boolean, default=False)

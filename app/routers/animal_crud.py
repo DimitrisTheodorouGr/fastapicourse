@@ -32,7 +32,7 @@ class AnimalRequest(BaseModel):
 class HealthRequest(BaseModel):
     animal_id: int = Field(gt=0)
     head_injury: bool = Field(default=False)
-    head_skin_condition: bool =Field(default=False)
+    head_skin_lesion: bool =Field(default=False)
     breast_abscesses: bool=Field(default=False)
     arthritis : bool=Field(default=False)
     oversized_hooves : bool=Field(default=False)
@@ -139,7 +139,7 @@ async def create_health_record(user: user_dependency, db:db_dependency, health_r
     health_rec_model = HealthRec(
         animal_id= health_request.animal_id,
         head_injury =health_request.head_injury ,
-        head_skin_condition = health_request.head_skin_condition,
+        head_skin_lesion = health_request.head_skin_lesion,
         breast_abscesses = health_request.breast_abscesses,
         arthritis = health_request.arthritis,
         oversized_hooves = health_request.oversized_hooves,
