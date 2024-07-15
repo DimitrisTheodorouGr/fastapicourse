@@ -32,14 +32,14 @@ class AnimalRequest(BaseModel):
 class HealthRequest(BaseModel):
     animal_id: int = Field(gt=0)
     head_injury: bool = Field(default=False)
-    skin_condition: bool =Field(default=False)
-    abscess: bool=Field(default=False)
+    head_skin_condition: bool =Field(default=False)
+    breast_abscesses: bool=Field(default=False)
     arthritis : bool=Field(default=False)
-    swollen_hooves : bool=Field(default=False)
-    mastitis: bool=Field(default=False)
+    oversized_hooves : bool=Field(default=False)
+    head_abscesses: bool=Field(default=False)
     fibrosis: bool=Field(default=False)
-    assymmetry : bool=Field(default=False)
-    mammary_skin_conditions :str
+    breast_assymmetry : bool=Field(default=False)
+    mammary_skin_conditions : bool=Field(default=False)
     cmt_a  : bool=Field(default=False)
     cmt_d : bool=Field(default=False)
     recorded_at: datetime
@@ -139,13 +139,13 @@ async def create_health_record(user: user_dependency, db:db_dependency, health_r
     health_rec_model = HealthRec(
         animal_id= health_request.animal_id,
         head_injury =health_request.head_injury ,
-        skin_conditions = health_request.skin_condition,
-        abscess = health_request.abscess,
+        head_skin_condition = health_request.head_skin_condition,
+        breast_abscesses = health_request.breast_abscesses,
         arthritis = health_request.arthritis,
-        swollen_hooves = health_request.swollen_hooves,
-        mastitis = health_request.mastitis,
+        oversized_hooves = health_request.oversized_hooves,
+        head_abscesses = health_request.head_abscesses,
         fibrosis = health_request.fibrosis,
-        asymmetry = health_request.assymmetry,
+        breast_assymmetry = health_request.breast_assymmetry,
         mammary_skin_conditions = health_request.mammary_skin_conditions,
         cmt_a = health_request.cmt_a,
         cmt_d = health_request.cmt_d,
