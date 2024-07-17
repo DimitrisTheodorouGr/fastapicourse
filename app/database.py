@@ -4,7 +4,8 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
-load_dotenv()  # take environment variables from .env.
+
+load_dotenv(dotenv_path='app/.env')  # take environment variables from .env.
 
 # Determine the current running environment
 environment = os.getenv("ENVIRONMENT", "dev")
