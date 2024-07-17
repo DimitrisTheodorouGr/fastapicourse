@@ -9,7 +9,7 @@ load_dotenv(dotenv_path='app/.env')  # take environment variables from .env.
 
 # Determine the current running environment
 environment = os.getenv("ENVIRONMENT", "dev")
-
+print(environment)
 # Choose the database URL based on the environment
 if environment.lower() == "prod":
     SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL_PROD")
