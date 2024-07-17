@@ -17,9 +17,10 @@ else:
     SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL_DEV")
 
 # Create the SQLAlchemy engine
-engine = create_engine(
+"""engine = create_engine(
     SQLALCHEMY_DATABASE_URL
-)
+)"""
+engine = create_engine('postgresql://timescaledb:z0Urp6nJpukzHLh@timescaledb:5432/timescaledb')
 
 # Session factory bound to the engine
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
