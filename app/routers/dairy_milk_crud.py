@@ -47,29 +47,30 @@ def get_dairy_milk_list_based_on_role(user: user_dependency, db: db_dependency,
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Authentication Failed')
 
     query = db.query(
+        UserRanches.user_id,
         Dairy_Milk.id.label('dairy_milk_id'),  # Include dairy_milk_id
         Ranches.name.label('ranch_name'),
         Dairy_Milk.milk_quality.label('milk_quality'),
         Dairy_Milk.milk_quantity.label('milk_quantity'),
         Dairy_Milk.created_at.label('created_at'),
         Dairy_Milk.updated_at.label('updated_at')
-    ).join(Ranches, Dairy_Milk.ranch_id == Ranches.id) \
-        .join(UserRanches, Ranches.id == UserRanches.ranch_id)
+    ).join(Ranches, UserRanches.ranch_id == Ranches.id) \
+        .join(Dairy_Milk, Ranches.id == Dairy_Milk.ranch_id)
 
-    if user.get('user_role') == 'admin':
-        query = db.query(
-            Dairy_Milk.id.label('dairy_milk_id'),  # Include dairy_milk_id
-            Ranches.name.label('ranch_name'),
-            Dairy_Milk.milk_quality.label('milk_quality'),
-            Dairy_Milk.milk_quantity.label('milk_quantity'),
-            Dairy_Milk.created_at.label('created_at'),
-            Dairy_Milk.updated_at.label('updated_at')
-        ).join(Ranches, Dairy_Milk.ranch_id == Ranches.id)
+    if user.get('user_role') in ['cheesemaker', 'rancher', 'vet']:
+        query = query.filter(UserRanches.user_id == user.get('user_id'))
+        # query = db.query(
+        #     Dairy_Milk.id.label('dairy_milk_id'),  # Include dairy_milk_id
+        #     Ranches.name.label('ranch_name'),
+        #     Dairy_Milk.milk_quality.label('milk_quality'),
+        #     Dairy_Milk.milk_quantity.label('milk_quantity'),
+        #     Dairy_Milk.created_at.label('created_at'),
+        #     Dairy_Milk.updated_at.label('updated_at')
+        # ).join(Ranches, Dairy_Milk.ranch_id == Ranches.id)
+    elif user.get('user_role') == 'admin':
+        pass  # No additional filtering needed for admin
     else:
-        if user.get('user_role') in ['cheesemaker', 'rancher', 'vet']:
-            query = query.filter(UserRanches.user_id == user.get('user_id'))
-        else:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Insufficient permissions')
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Insufficient permissions')
 
     if start_date and end_date:
         query = query.filter(Dairy_Milk.created_at >= start_date, Dairy_Milk.created_at <= end_date)
