@@ -43,33 +43,31 @@ def get_dairy_milk_list_based_on_role(user: user_dependency, db: db_dependency,
     limit: Optional[int] = Query(50, title="Max number of data returned", ge=0),
     start_date: Optional[date] = Query(None, title="Start date of the range"),
     end_date: Optional[date] = Query(None, title="End date of the range")):
+
+    print(f"User Role: {user.get('user_role')}, User ID: {user.get('user_id')}")
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Authentication Failed')
 
+    # Base query for dairy milk data
     query = db.query(
-        UserRanches.user_id,
-        Dairy_Milk.id.label('dairy_milk_id'),  # Include dairy_milk_id
+        Dairy_Milk.id.label('dairy_milk_id'),
         Ranches.name.label('ranch_name'),
         Dairy_Milk.milk_quality.label('milk_quality'),
         Dairy_Milk.milk_quantity.label('milk_quantity'),
         Dairy_Milk.created_at.label('created_at'),
         Dairy_Milk.updated_at.label('updated_at')
-    ).join(Ranches, UserRanches.ranch_id == Ranches.id) \
-        .join(Dairy_Milk, Ranches.id == Dairy_Milk.ranch_id)
+    ).join(Ranches, Dairy_Milk.ranch_id == Ranches.id) \
+     .join(UserRanches, Ranches.id == UserRanches.ranch_id)
 
-    if user.get('user_role') in ['cheesemaker', 'rancher', 'vet']:
+    print(f"Initial Query: {str(query)}")
+
+    if user.get('user_role') == 'admin':
+        pass  # Admin can see all records
+    elif user.get('user_role') in ['cheesemaker', 'rancher', 'vet']:
         query = query.filter(UserRanches.user_id == user.get('user_id'))
-        # query = db.query(
-        #     Dairy_Milk.id.label('dairy_milk_id'),  # Include dairy_milk_id
-        #     Ranches.name.label('ranch_name'),
-        #     Dairy_Milk.milk_quality.label('milk_quality'),
-        #     Dairy_Milk.milk_quantity.label('milk_quantity'),
-        #     Dairy_Milk.created_at.label('created_at'),
-        #     Dairy_Milk.updated_at.label('updated_at')
-        # ).join(Ranches, Dairy_Milk.ranch_id == Ranches.id)
-    elif user.get('user_role') == 'admin':
-        pass  # No additional filtering needed for admin
+        print(f"Filtered Query for {user.get('user_role')}: {str(query)}")
     else:
+        print(f"Forbidden Access for Role: {user.get('user_role')}")
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Insufficient permissions')
 
     if start_date and end_date:
