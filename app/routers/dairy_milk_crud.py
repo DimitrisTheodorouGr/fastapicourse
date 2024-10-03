@@ -53,9 +53,8 @@ def get_dairy_milk_list_based_on_role(user: user_dependency, db: db_dependency,
         Dairy_Milk.milk_quantity.label('milk_quantity'),
         Dairy_Milk.created_at.label('created_at'),
         Dairy_Milk.updated_at.label('updated_at')
-    ).join(Ranches, UserRanches.ranch_id == Ranches.id) \
-        .join(Dairy_Milk, Ranches.id == Dairy_Milk.ranch_id) \
-        .filter(UserRanches.user_id == user.get('user_id'))
+    ).join(Ranches, Dairy_Milk.ranch_id == Ranches.id) \
+        .join(UserRanches, Ranches.id == UserRanches.ranch_id)
 
     if user.get('user_role') == 'admin':
         query = db.query(
