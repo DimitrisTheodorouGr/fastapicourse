@@ -38,7 +38,7 @@ async def get_users_info(user: user_dependency, db: db_dependency):
         raise HTTPException(status_code=401, detail='Authentication Failed')
     if user.get('user_role') == 'admin':
         query = db.query(Users).all()
-        return [{"username:": data.username, "email:": data.email, "role:": data.role, "created_at": data.created_at, "updated_at": data.updated_at} for data in query]
+        return [{"id": data.id, "username:": data.username, "email:": data.email, "role:": data.role, "created_at": data.created_at, "updated_at": data.updated_at} for data in query]
 @router.put('/change-user-role')
 async def change_user_role(user: user_dependency, db: db_dependency, user_role: str, username: str):
     if user is None:
