@@ -4,9 +4,10 @@ import xml.etree.ElementTree as ET
 import requests
 
 router = APIRouter(
-    prefix='/collar',
-    tags=['Collar']
+    prefix='/kml',
+    tags=['kml']
 )
+
 # API endpoint for the wellness project
 api_url = "https://project-wellness.ece.uowm.gr/wellness-api/collar/data/"
 
