@@ -1,9 +1,12 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
+from fastapi import Depends, APIRouter
 import xml.etree.ElementTree as ET
 import requests
+from pydantic import BaseModel
 
-app = FastAPI()
+router = APIRouter(
+    prefix='/kml',
+    tags=['kml']
+)
 
 # API endpoint for the wellness project
 api_url = "https://project-wellness.ece.uowm.gr/wellness-api/collar/data/"
@@ -13,7 +16,7 @@ class KMLTextModel(BaseModel):
     collar_id: int
     file_content: str
 
-@app.post("/upload_kml_text/")
+@router.post("/upload_kml_text/")
 async def upload_kml_text(data: KMLTextModel):
     # Extract collar_id and file_content from the request
     collar_id = data.collar_id
