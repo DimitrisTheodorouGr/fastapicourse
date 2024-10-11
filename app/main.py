@@ -1,5 +1,5 @@
 from .database import SessionLocal, engine
-from .routers import auth, ranch_crud, admins,station_crud,animal_crud, wellindex_crud, dairy_milk_crud,collar_crud,kml_crud
+from .routers import auth, ranch_crud, admins,station_crud,animal_crud, wellindex_crud, dairy_milk_crud,collar_crud
 from fastapi import FastAPI, Depends
 from typing import Union, Annotated
 from fastapi.middleware.cors import CORSMiddleware
@@ -26,7 +26,7 @@ app.include_router(animal_crud.router)
 app.include_router(wellindex_crud.router)
 app.include_router(dairy_milk_crud.router)
 app.include_router(collar_crud.router)
-app.include_router(kml_crud.router)
+
 
 # Set up CORS middleware
 app.add_middleware(
