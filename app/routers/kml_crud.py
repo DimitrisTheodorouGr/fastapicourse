@@ -1,35 +1,32 @@
-from fastapi import Depends, APIRouter, Form, File, UploadFile
-import os
+from fastapi import FastAPI
+from pydantic import BaseModel
 import xml.etree.ElementTree as ET
 import requests
 
-router = APIRouter(
-    prefix='/kml',
-    tags=['kml']
-)
+app = FastAPI()
 
 # API endpoint for the wellness project
 api_url = "https://project-wellness.ece.uowm.gr/wellness-api/collar/data/"
 
-@router.post("/upload_kml/")
-async def upload_kml(collar_id: int = Form(...), file: UploadFile = File(...)):
-    # Save the uploaded file with its actual name, which might be 'export.kml.xml'
-    file_location = f"temp_{file.filename}"
-    with open(file_location, "wb") as f:
-        f.write(await file.read())
+# Model to receive the collar_id and file_content as text
+class KMLTextModel(BaseModel):
+    collar_id: int
+    file_content: str
 
-    # Process the KML file and send API requests
-    process_kml(file_location, collar_id)
+@app.post("/upload_kml_text/")
+async def upload_kml_text(data: KMLTextModel):
+    # Extract collar_id and file_content from the request
+    collar_id = data.collar_id
+    file_content = data.file_content
 
-    # Delete the temp file after processing
-    os.remove(file_location)
+    # Process the KML text and send API requests
+    process_kml_text(file_content, collar_id)
 
     return {"status": "File processed successfully", "collar_id": collar_id}
 
-def process_kml(kml_file: str, collar_id: int):
-    # Load and parse the KML (XML) file
-    tree = ET.parse(kml_file)
-    root = tree.getroot()
+def process_kml_text(kml_content: str, collar_id: int):
+    # Parse the KML content from the text
+    root = ET.fromstring(kml_content)
 
     # Namespace for KML
     namespace = {'kml': 'http://www.opengis.net/kml/2.2'}
@@ -65,5 +62,3 @@ def process_kml(kml_file: str, collar_id: int):
                 print(f"Success: Sent data for {latitude}, {longitude} at {timestamp}")
             else:
                 print(f"Failed: {response.status_code} for {latitude}, {longitude}")
-
-# Run the application with: uvicorn main:app --reload
