@@ -1,7 +1,7 @@
 from app.database import SessionLocal
 from app.models import Ranches,UserRanches,Animals,Collars,CollarGPSData
 from .auth import get_current_user
-from fastapi import Depends, APIRouter, HTTPException, Path, Query
+from fastapi import Depends, APIRouter, HTTPException, Path, Query, UploadFile, File, Form, status
 from typing import Annotated,Optional,List
 from starlette import status
 from pydantic import BaseModel,Field
@@ -43,10 +43,6 @@ class CollarDataRequest(BaseModel):
     altitude: float
     humidity: float
     timestamp: datetime
-# New model for KML content submission
-class CollarKMLDataRequest(BaseModel):
-    collar_id: int = Field(gt=0)
-    kml_content: str
 def get_db():
     db = SessionLocal()
     try:
@@ -305,21 +301,35 @@ async def get_collar_data_route_geojson(user: user_dependency, db: db_dependency
             }
         }]
     }
-# Endpoint to submit KML content and process it
-@router.post('/data/kml', status_code=status.HTTP_201_CREATED)
-async def create_collar_data_from_kml(user: user_dependency, db: db_dependency, create_collar_data_request: CollarKMLDataRequest):
+# Endpoint to upload XML file and process it with collar_id
+@router.post("/data/upload-xml", status_code=status.HTTP_201_CREATED)
+async def upload_xml_file(
+    user: user_dependency,
+    db: db_dependency,
+    file: UploadFile = File(...),
+    collar_id: int = Form(...)
+):
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
 
-    # Parse the KML content from the request
-    root = ET.fromstring(create_collar_data_request.kml_content)
+    if not file.filename.endswith(".xml"):
+        raise HTTPException(status_code=400, detail="Invalid file format. Please upload an .xml file.")
 
-    # Namespace for KML
-    namespace = {'kml': 'http://www.opengis.net/kml/2.2'}
+    # Read the uploaded XML file content
+    xml_content = await file.read()
+
+    # Parse the XML content
+    try:
+        root = ET.fromstring(xml_content)
+    except ET.ParseError:
+        raise HTTPException(status_code=400, detail="Invalid XML file structure.")
+
+    # Namespace for XML if needed (e.g., for KML-like structures)
+    namespace = {'kml': 'http://www.opengis.net/kml/2.2'}  # Adjust the namespace if necessary
     placemarks = []
 
-    # Iterate through each Placemark and collect data
-    for placemark in root.findall(".//kml:Placemark", namespace):
+    # Iterate through each Placemark or other relevant XML elements and collect data
+    for placemark in root.findall(".//kml:Placemark", namespace):  # Adjust based on your XML structure
         coordinates = placemark.find(".//kml:Point/kml:coordinates", namespace)
         when = placemark.find(".//kml:TimeStamp/kml:when", namespace)
 
@@ -327,7 +337,7 @@ async def create_collar_data_from_kml(user: user_dependency, db: db_dependency, 
             coord_text = coordinates.text.strip()
             longitude, latitude, altitude = map(float, coord_text.split(","))
 
-            # Extract the timestamp from the KML
+            # Extract the timestamp from the XML
             timestamp = when.text
 
             # Create the WKT point string from the coordinates
@@ -335,7 +345,7 @@ async def create_collar_data_from_kml(user: user_dependency, db: db_dependency, 
 
             # Prepare the collar data model to be inserted into the database
             collar_data_model = CollarGPSData(
-                collar_id=create_collar_data_request.collar_id,
+                collar_id=collar_id,
                 coordinates=WKTElement(wkt_point, srid=4326),
                 temperature=0,  # Placeholder, adjust as needed
                 battery_percentage=0,  # Placeholder, adjust as needed
@@ -349,4 +359,4 @@ async def create_collar_data_from_kml(user: user_dependency, db: db_dependency, 
             db.add(collar_data_model)
 
     db.commit()
-    return {"message": "Collar GPS data uploaded successfully from KML content"}
+    return {"message": f"Collar GPS data uploaded successfully for collar_id {collar_id}"}
