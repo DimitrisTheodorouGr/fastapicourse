@@ -77,7 +77,14 @@ def get_collar_list_based_on_role(user:user_dependency, db: db_dependency):
                         .join(Ranches, UserRanches.ranch_id == Ranches.id) \
                         .join(Animals, Ranches.id == Animals.ranch_id) \
                         .join(Collars, Animals.id == Collars.animal_id).all()
-
+@router.get('/all_collars' ,status_code=status.HTTP_200_OK)
+def get_all_collar_list(user:user_dependency, db: db_dependency):
+    if user is None:
+        raise HTTPException(status_code=401, detail='Authentication Failed')
+    elif user.get('user_role') == 'rancher' or user.get('user_role') == 'vet':
+        raise HTTPException(status_code=403, detail='Forbidden')
+    elif user.get('user_role') == 'admin':
+        return db.query(Collars).all()
 @router.get('/without_collar' , response_model=List[WithoutCollarInfoResponse],status_code=status.HTTP_200_OK)
 def get_animal_list_without_collar_based_on_role(user:user_dependency, db: db_dependency):
     if user is None:
