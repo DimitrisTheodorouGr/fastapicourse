@@ -8,7 +8,8 @@ from pydantic import BaseModel,Field
 from sqlalchemy.orm import Session
 from datetime import datetime,date
 from geoalchemy2 import WKTElement
-from shapely.geometry import LineString
+from shapely.geometry import Point,LineString
+
 import json
 
 
@@ -172,7 +173,7 @@ async def create_collar_data(user: user_dependency, db: db_dependency, create_co
 
     db.add(collar_data_model)
     db.commit()
-@router.get('/data/',status_code=status.HTTP_200_OK)
+@router.get('/data/', status_code=status.HTTP_200_OK)
 async def get_collar_data_geojson(user: user_dependency, db: db_dependency,
                                   collar_id: int,
                                   limit: Optional[int] = Query(50, title="Max number of data returned", ge=0),
@@ -184,7 +185,6 @@ async def get_collar_data_geojson(user: user_dependency, db: db_dependency,
     query = db.query(CollarGPSData).filter(CollarGPSData.collar_id == collar_id)
     if query is None:
         raise HTTPException(status_code=404, detail="Gps data not found")
-    # Building the GeoJSON object
 
     if start_date and end_date:
         query = query.filter(CollarGPSData.timestamp >= start_date, CollarGPSData.timestamp <= end_date)
@@ -193,19 +193,20 @@ async def get_collar_data_geojson(user: user_dependency, db: db_dependency,
     elif end_date:
         query = query.filter(CollarGPSData.timestamp <= end_date)
 
-
-    if limit is not None:  # Ensuring the limit is considered only if provided
+    if limit is not None:
         query = query.limit(limit)
     collar_data = query.all()
 
+    if not collar_data:
+        raise HTTPException(status_code=404, detail="No data found within the specified range")
 
-    from shapely.geometry import Point
-
-    return {
-      "type": "FeatureCollection",
-      "features": [{
+    # Use Shapely Point for individual locations
+    features = []
+    for data in collar_data:
+        point = Point(data.coordinates_geojson()['coordinates'])
+        features.append({
             "type": "Feature",
-            "geometry": Point(data.coordinates_geojson()['coordinates']), #data.coordinates_geojson(),
+            "geometry": point.__geo_interface__,
             "properties": {
                 "id": data.id,
                 "temperature": data.temperature,
@@ -214,7 +215,12 @@ async def get_collar_data_geojson(user: user_dependency, db: db_dependency,
                 "humidity": data.humidity,
                 "timestamp": data.timestamp
             }
-        } for data in collar_data]}
+        })
+
+    return {
+        "type": "FeatureCollection",
+        "features": features
+    }
 @router.get('/data/values_only',status_code=status.HTTP_200_OK)
 async def get_collar_data_values_only(user: user_dependency, db: db_dependency,
                                   collar_id: int,
@@ -283,8 +289,6 @@ async def get_collar_data_route_geojson(user: user_dependency, db: db_dependency
     if limit is not None:
         query = query.limit(limit)
     collar_data = query.all()
-
-    from shapely.geometry import LineString
 
     line = LineString([data.coordinates_geojson()['coordinates'] for data in collar_data])
 
