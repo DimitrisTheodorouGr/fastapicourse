@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime,date
 from geoalchemy2 import WKTElement
 from shapely.geometry import Point,LineString
-
+import xml.etree.ElementTree as ET
 import json
 
 
@@ -43,7 +43,10 @@ class CollarDataRequest(BaseModel):
     altitude: float
     humidity: float
     timestamp: datetime
-
+# New model for KML content submission
+class CollarKMLDataRequest(BaseModel):
+    collar_id: int = Field(gt=0)
+    kml_content: str
 def get_db():
     db = SessionLocal()
     try:
@@ -302,3 +305,48 @@ async def get_collar_data_route_geojson(user: user_dependency, db: db_dependency
             }
         }]
     }
+# Endpoint to submit KML content and process it
+@router.post('/data/kml', status_code=status.HTTP_201_CREATED)
+async def create_collar_data_from_kml(user: user_dependency, db: db_dependency, create_collar_data_request: CollarKMLDataRequest):
+    if user is None:
+        raise HTTPException(status_code=401, detail='Authentication Failed')
+
+    # Parse the KML content from the request
+    root = ET.fromstring(create_collar_data_request.kml_content)
+
+    # Namespace for KML
+    namespace = {'kml': 'http://www.opengis.net/kml/2.2'}
+    placemarks = []
+
+    # Iterate through each Placemark and collect data
+    for placemark in root.findall(".//kml:Placemark", namespace):
+        coordinates = placemark.find(".//kml:Point/kml:coordinates", namespace)
+        when = placemark.find(".//kml:TimeStamp/kml:when", namespace)
+
+        if coordinates is not None and when is not None:
+            coord_text = coordinates.text.strip()
+            longitude, latitude, altitude = map(float, coord_text.split(","))
+
+            # Extract the timestamp from the KML
+            timestamp = when.text
+
+            # Create the WKT point string from the coordinates
+            wkt_point = f'POINT({latitude} {longitude})'
+
+            # Prepare the collar data model to be inserted into the database
+            collar_data_model = CollarGPSData(
+                collar_id=create_collar_data_request.collar_id,
+                coordinates=WKTElement(wkt_point, srid=4326),
+                temperature=0,  # Placeholder, adjust as needed
+                battery_percentage=0,  # Placeholder, adjust as needed
+                altitude=altitude,
+                humidity=0,  # Placeholder, adjust as needed
+                created_at=datetime.now(),
+                updated_at=datetime.now(),
+                timestamp=timestamp,
+            )
+
+            db.add(collar_data_model)
+
+    db.commit()
+    return {"message": "Collar GPS data uploaded successfully from KML content"}
