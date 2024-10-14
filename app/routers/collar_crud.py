@@ -197,11 +197,15 @@ async def get_collar_data_geojson(user: user_dependency, db: db_dependency,
     if limit is not None:  # Ensuring the limit is considered only if provided
         query = query.limit(limit)
     collar_data = query.all()
+
+
+    from shapely.geometry import Point
+
     return {
       "type": "FeatureCollection",
       "features": [{
             "type": "Feature",
-            "geometry": data.coordinates_geojson(),
+            "geometry": Point(data.coordinates_geojson()['coordinates']), #data.coordinates_geojson(),
             "properties": {
                 "id": data.id,
                 "temperature": data.temperature,
