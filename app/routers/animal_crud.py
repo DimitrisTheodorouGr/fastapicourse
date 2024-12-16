@@ -55,22 +55,45 @@ def get_db():
 db_dependency = Annotated[Session, Depends(get_db)]
 user_dependency = Annotated[dict, Depends(get_current_user)]
 
-@router.get('/' ,response_model= List[AnimalInfoResponse], status_code=status.HTTP_200_OK)
-def get_animal_list_based_on_role(user:user_dependency, db: db_dependency):
+@router.get('/', response_model=List[AnimalInfoResponse], status_code=status.HTTP_200_OK)
+def get_animal_list_based_on_role(user: user_dependency, db: db_dependency):
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
     elif user.get('user_role') == 'rancher' or user.get('user_role') == 'vet':
-
-        return db.query(UserRanches.user_id, Ranches.name.label('ranch_name'), Animals.type.label('animal_type'), Animals.tag.label('animal_tag'),Animals.id.label('animal_id'),
-                         Animals.age.label('animal_age'),Animals.status.label('animal_status'), Animals.created_at.label('created_at'), Animals.updated_at.label('updated_at')) \
-            .join(Ranches, UserRanches.ranch_id == Ranches.id) \
-            .join(Animals, Ranches.id == Animals.ranch_id) \
-            .filter(UserRanches.user_id == user.get('user_id')).all()
+        return db.query(
+            UserRanches.user_id,
+            Ranches.name.label('ranch_name'),
+            Animals.type.label('animal_type'),
+            Animals.tag.label('animal_tag'),
+            Animals.id.label('animal_id'),
+            Animals.age.label('animal_age'),
+            Animals.status.label('animal_status'),
+            Animals.created_at.label('created_at'),
+            Animals.updated_at.label('updated_at')
+        ).join(
+            Ranches, UserRanches.ranch_id == Ranches.id
+        ).join(
+            Animals, Ranches.id == Animals.ranch_id
+        ).filter(
+            UserRanches.user_id == user.get('user_id')
+        ).distinct().all()
     elif user.get('user_role') == 'admin':
-        return db.query(UserRanches.user_id, Ranches.name.label('ranch_name'), Animals.type.label('animal_type'), Animals.tag.label('animal_tag'),Animals.id.label('animal_id'),
-                         Animals.age.label('animal_age'),Animals.status.label('animal_status'), Animals.created_at.label('created_at'), Animals.updated_at.label('updated_at')) \
-                .join(Ranches, UserRanches.ranch_id == Ranches.id) \
-                .join(Animals, Ranches.id == Animals.ranch_id).all()
+        return db.query(
+            UserRanches.user_id,
+            Ranches.name.label('ranch_name'),
+            Animals.type.label('animal_type'),
+            Animals.tag.label('animal_tag'),
+            Animals.id.label('animal_id'),
+            Animals.age.label('animal_age'),
+            Animals.status.label('animal_status'),
+            Animals.created_at.label('created_at'),
+            Animals.updated_at.label('updated_at')
+        ).join(
+            Ranches, UserRanches.ranch_id == Ranches.id
+        ).join(
+            Animals, Ranches.id == Animals.ranch_id
+        ).distinct().all()
+
 @router.post('/' , status_code=status.HTTP_201_CREATED)
 async def create_animal(user: user_dependency, db:db_dependency, animalrequest:AnimalRequest):
     if user is None:
