@@ -296,6 +296,9 @@ async def get_collar_data_route_geojson(user: user_dependency, db: db_dependency
         query = query.limit(limit)
     collar_data = query.all()
 
+    if not collar_data:
+        raise HTTPException(status_code=404, detail="Δεν βρέθηκαν δεδομένα")
+
     line = LineString([data.coordinates_geojson()['coordinates'] for data in collar_data])
 
     return {
@@ -348,7 +351,7 @@ async def upload_xml_file(
             timestamp = when.text
 
             # Create the WKT point string from the coordinates
-            wkt_point = f'POINT({latitude} {longitude})'
+            wkt_point = f'POINT({longitude} {latitude})'
 
             # Prepare the collar data model to be inserted into the database
             collar_data_model = CollarGPSData(
