@@ -40,8 +40,8 @@ class HealthRequest(BaseModel):
     fibrosis: bool=Field(default=False)
     breast_assymmetry : bool=Field(default=False)
     mammary_skin_conditions : bool=Field(default=False)
-    cmt_a  : bool=Field(default=False)
-    cmt_d : bool=Field(default=False)
+    cmt_a  : int =Field(gt=0)
+    cmt_d : int=Field(gt=0)
     recorded_at: datetime
 
 def get_db():
