@@ -70,14 +70,14 @@ def get_wellindex_list_based_on_role(user:user_dependency, db: db_dependency,
         query = query.limit(limit)
 
     return query.all()
-@router.get('/last/{ranch_id}', status_code=status.HTTP_200_OK)
+@router.get('/twolast/{ranch_id}', status_code=status.HTTP_200_OK)
 def get_wellindex_last(user: user_dependency, db: db_dependency, ranch_id: int = Path(gt=0)):
 
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
 
     query = db.query(WellIndex).filter(WellIndex.ranch_id == ranch_id).order_by(
-        WellIndex.created_at.desc()).first()
+        WellIndex.created_at.desc()).limit(2).all()
     if query is None:
         raise HTTPException(status_code=404, detail='Data not found')
 
