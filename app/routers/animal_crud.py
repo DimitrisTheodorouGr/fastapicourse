@@ -1,3 +1,5 @@
+from sqlalchemy import func
+
 from app.database import SessionLocal
 from app.models import Users,Ranches,UserRanches,Animals,HealthRec
 from .auth import get_current_user
@@ -43,6 +45,11 @@ class HealthRequest(BaseModel):
     cmt_a  : int
     cmt_d : int
     recorded_at: datetime
+class AnimalHealthCount(BaseModel):
+    ranch_id: int
+    ranch_name: str
+    animal_tag: str
+    health_record_count: int
 
 def get_db():
     db = SessionLocal()
@@ -189,3 +196,29 @@ async def delete_health_record(user: user_dependency, db:db_dependency, record_i
     db.delete(query)
     db.commit()
 
+@router.get("/count", response_model=List[AnimalHealthCount])
+async def get_health_records(db:db_dependency, user:user_dependency,
+    user_id: int = Query(..., description="User ID"),
+    start_date: date = Query(..., description="Start date (YYYY-MM-DD)"),
+    end_date: date = Query(..., description="End date (YYYY-MM-DD)"),
+
+    ):
+    stmt = db.query(
+            Ranches.id.label("ranch_id"),
+            Ranches.name.label("ranch_name"),
+            Animals.tag.label("animal_tag"),
+            func.count(HealthRec.id).label("health_record_count")
+        ).join(Animals, Ranches.id == Animals.ranch_id).join(HealthRec, Animals.id == HealthRec.animal_id).join(UserRanches, Ranches.id == UserRanches.ranch_id).filter(UserRanches.user_id == user_id).filter(HealthRec.recorded_at.between(start_date, end_date)).group_by(Ranches.id, Ranches.name, Animals.tag).order_by(func.count(HealthRec.id).desc()).all()
+
+
+
+
+    return [
+        AnimalHealthCount(
+            ranch_id=row.ranch_id,
+            ranch_name=row.ranch_name,
+            animal_tag=row.animal_tag,
+            health_record_count=row.health_record_count
+        )
+        for row in stmt
+    ]
